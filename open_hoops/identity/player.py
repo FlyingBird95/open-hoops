@@ -74,7 +74,7 @@ class PlayerIdentifier:
         for v in last:
             counts[v] = counts.get(v, 0) + 1
 
-        return max(counts, key=lambda k: counts[k])
+        return max(counts, key=lambda k: (counts[k], -k))
 
     def identify(
         self,

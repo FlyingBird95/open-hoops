@@ -23,11 +23,12 @@ def test_identify_returns_none_on_ocr_failure(player_id_frame):
 def test_identify_majority_vote(player_id_frame):
     ident = PlayerIdentifier()
     with patch.object(ident, "_run_ocr", return_value=23):
-        # first 10 readings return 23
+        # Call identify() at frame multiples of 30 to trigger OCR
         for i in range(10):
-            ident._frame_counter[1] = i * 30  # simulate every-30-frame trigger
-            ident._history.setdefault(1, []).append(23)
-        result = ident._majority(1)
+            frame_num = i * 30
+            ident._frame_counter[1] = frame_num
+            ident.identify(player_id_frame, (100, 200, 150, 300), track_id=1)
+    result = ident._majority(1)
     assert result == 23
 
 
