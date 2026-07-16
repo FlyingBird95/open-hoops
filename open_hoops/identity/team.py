@@ -44,7 +44,7 @@ class TeamClassifier:
     ) -> None:
         histograms = []
         crops_for_color: list[np.ndarray] = []
-        for frame, bboxes in zip(frames, player_bboxes):
+        for frame, bboxes in zip(frames[:30], player_bboxes[:30]):
             for bbox in bboxes:
                 crop = _torso_crop(frame, bbox)
                 if crop.size == 0:
@@ -73,6 +73,8 @@ class TeamClassifier:
         if self._kmeans is None:
             return "team_a"
         crop = _torso_crop(frame, bbox)
+        if crop.size == 0:
+            return "team_a"
         hist = _hsv_histogram(crop).reshape(1, -1)
         label = int(self._kmeans.predict(hist)[0])
         return "team_a" if label == 0 else "team_b"

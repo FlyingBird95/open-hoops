@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from open_hoops.identity.team import TeamClassifier
 
 
