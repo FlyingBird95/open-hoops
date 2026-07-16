@@ -50,10 +50,10 @@ class Analyzer:
     def run(self) -> GameStats:
         cap = cv2.VideoCapture(self._video_path)
         if not cap.isOpened():
+            cap.release()
             raise ValueError(f"Cannot open video: {self._video_path}")
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         H = compute_homography(self._src, self._dst)
         detector = Detector(self._model_path)
@@ -93,6 +93,9 @@ class Analyzer:
                 warmup_bboxes.append([p.bbox for p in fd.players])
             elif frame_idx == 30:
                 team_clf.fit(warmup_frames, warmup_bboxes)
+                # Free warmup memory; no longer needed after fit
+                warmup_frames.clear()
+                warmup_bboxes.clear()
 
             # Assign team and player identity for detected players
             for p in fd.players:
@@ -184,6 +187,7 @@ class Analyzer:
         shot_makes: dict[int, int] = {}
         shot_attempts: dict[int, int] = {}
         passes_made: dict[int, int] = {}
+        # TODO: passes_received requires a receiver_id field on GameEvent (not yet in model)
         passes_received: dict[int, int] = {}
         possession_frames: dict[int, int] = {}
 
