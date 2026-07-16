@@ -1,0 +1,61 @@
+from __future__ import annotations
+import numpy as np
+from dataclasses import dataclass, field
+from ultralytics import YOLO
+
+
+@dataclass
+class Detection:
+    bbox: tuple[int, int, int, int]  # x1, y1, x2, y2
+    conf: float
+    class_name: str
+    track_id: int | None = None
+
+
+@dataclass
+class FrameDetections:
+    players: list[Detection] = field(default_factory=list)
+    ball: Detection | None = None
+    hoops: list[Detection] = field(default_factory=list)
+
+
+class Detector:
+    def __init__(self, model_path: str = "yolo11n.pt") -> None:
+        self._model = YOLO(model_path)
+
+    def detect(self, frame: np.ndarray) -> FrameDetections:
+        results = self._model.track(frame, persist=True, verbose=False)
+        fd = FrameDetections()
+        if not results:
+            return fd
+        r = results[0]
+        boxes = r.boxes
+        if boxes is None:
+            return fd
+
+        bboxes = boxes.xyxy.cpu().numpy()
+        confs = boxes.conf.cpu().numpy()
+        classes = boxes.cls.cpu().numpy().astype(int)
+        track_ids = (
+            boxes.id.cpu().numpy().astype(int)
+            if boxes.id is not None
+            else [None] * len(bboxes)
+        )
+
+        for bbox, conf, cls_id, tid in zip(bboxes, confs, classes, track_ids):
+            name = r.names[cls_id]
+            x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+            det = Detection(
+                bbox=(x1, y1, x2, y2),
+                conf=float(conf),
+                class_name=name,
+                track_id=int(tid) if tid is not None else None,
+            )
+            if name == "player":
+                fd.players.append(det)
+            elif name == "ball":
+                fd.ball = det
+            elif name == "hoop":
+                fd.hoops.append(det)
+
+        return fd
