@@ -1,4 +1,4 @@
-# open_hoops
+# Open-hoops
 
 **Extract every basketball stat from a video. Powered by YOLO.**
 
@@ -40,16 +40,20 @@ pip install -e ".[dev]"
 ## Quickstart
 
 ```python
-from open_hoops import analyze
+from open_hoops import OpenHoop, Video
 
-# Extract stats from a video
-stats = analyze("game.mp4")
+# Load a video
+video = Video(path="game.mp4")
+hoops = OpenHoop(video)
 
+# Extract stats
+stats = hoops.extract_stats()
 print(f"Final score: {stats.teams[0].score} – {stats.teams[1].score}")
 print(f"Game duration: {stats.duration_seconds / 60:.1f} minutes")
 
-# Produce an annotated video with live score HUD
-stats = analyze("game.mp4", output_video="game_scored.mp4")
+# Render score overlay onto video
+out = hoops.edit_overlay(stats, output_path="game_scored.mp4")
+print(f"Annotated video saved to: {out.path}")
 
 # Export everything to JSON
 import json
@@ -61,7 +65,7 @@ with open("stats.json", "w") as f:
 
 ```json
 {
-  "video_path": "game.mp4",
+  "video": { "path": "game.mp4" },
   "duration_seconds": 2400.0,
   "fps": 30.0,
   "teams": [
