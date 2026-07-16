@@ -1,5 +1,64 @@
-"""ShotDetector stub - will be implemented in future tasks."""
+from __future__ import annotations
+import math
+from open_hoops.tracker import TrackedFrame
+from open_hoops.models import GameEvent
+
+_MAKE_RADIUS = 0.15  # ball centre within this of hoop centre = make
+
+
+def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
+    return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
 class ShotDetector:
-    pass
+    def __init__(self, hoop_radius_m: float = 0.45) -> None:
+        self._radius = hoop_radius_m
+        self._in_region: dict[int, bool] = {}  # hoop_idx -> was ball in region last frame
+
+    def update(
+        self,
+        tf: TrackedFrame,
+        player_teams: dict[int, str],
+        possession_owner: int | None,
+        frame_idx: int,
+        fps: float,
+    ) -> list[GameEvent]:
+        if tf.ball_pos is None or not tf.hoops:
+            return []
+
+        events: list[GameEvent] = []
+        team_id = player_teams.get(possession_owner) if possession_owner is not None else None
+
+        for idx, hoop in enumerate(tf.hoops):
+            dist = _dist(tf.ball_pos, hoop)
+            was_in = self._in_region.get(idx, False)
+            now_in = dist <= self._radius
+
+            if now_in and not was_in:
+                events.append(GameEvent(
+                    type="shot",
+                    frame=frame_idx,
+                    timestamp_sec=frame_idx / fps,
+                    player_id=possession_owner,
+                    team_id=team_id,
+                ))
+            if dist <= _MAKE_RADIUS and was_in:
+                events.append(GameEvent(
+                    type="make",
+                    frame=frame_idx,
+                    timestamp_sec=frame_idx / fps,
+                    player_id=possession_owner,
+                    team_id=team_id,
+                ))
+            elif not now_in and was_in:
+                events.append(GameEvent(
+                    type="miss",
+                    frame=frame_idx,
+                    timestamp_sec=frame_idx / fps,
+                    player_id=possession_owner,
+                    team_id=team_id,
+                ))
+
+            self._in_region[idx] = now_in
+
+        return events
