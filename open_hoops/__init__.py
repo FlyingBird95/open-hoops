@@ -1,5 +1,5 @@
-from open_hoops.analyzer import Analyzer
-from open_hoops.models import GameStats
+from open_hoops.analyzer import OpenHoop
+from open_hoops.models import GameStats, Video
 
 
 def analyze(video_path: str, output_video: str | None = None) -> GameStats:
@@ -17,4 +17,8 @@ def analyze(video_path: str, output_video: str | None = None) -> GameStats:
     Raises:
         ValueError: If the video file cannot be opened.
     """
-    return Analyzer(video_path, output_video=output_video).run()
+    hoops = OpenHoop(Video(path=video_path))
+    stats = hoops.extract_stats()
+    if output_video:
+        hoops.edit_overlay(stats, output_video)
+    return stats

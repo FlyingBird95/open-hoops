@@ -4,7 +4,7 @@ import warnings
 import cv2
 import numpy as np
 
-from open_hoops.models import GameStats, TeamStats, PlayerStats, Point
+from open_hoops.models import GameStats, TeamStats, PlayerStats, Point, Video
 from open_hoops.detector import Detector
 from open_hoops.tracker import Tracker, compute_homography
 from open_hoops.identity.team import TeamClassifier
@@ -16,7 +16,6 @@ from open_hoops.stats.passes import PassDetector
 from open_hoops.stats.score import ScoreTracker
 from open_hoops.overlay import Overlay
 
-# Default: assume 1280×720 frame mapped to NBA full-court dimensions (28.65m × 15.24m)
 _DEFAULT_SRC = np.array(
     [[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32
 )
@@ -24,34 +23,32 @@ _DEFAULT_DST = np.array(
     [[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32
 )
 
-# Warn if ball is missing for more than 5 seconds worth of frames
-_BALL_MISSING_WARN_FRAMES = 5 * 30  # 5 seconds at 30 fps
+_BALL_MISSING_WARN_FRAMES = 5 * 30  # baseline at 30 fps
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
-class Analyzer:
+class OpenHoop:
     def __init__(
         self,
-        video_path: str,
+        video: Video,
         model_path: str = "yolo11n.pt",
-        output_video: str | None = None,
         src_pts: np.ndarray | None = None,
         dst_pts: np.ndarray | None = None,
     ) -> None:
-        self._video_path = video_path
+        self._video = video
         self._model_path = model_path
-        self._output_video = output_video
         self._src = src_pts if src_pts is not None else _DEFAULT_SRC
         self._dst = dst_pts if dst_pts is not None else _DEFAULT_DST
 
-    def run(self) -> GameStats:
-        cap = cv2.VideoCapture(self._video_path)
+    def extract_stats(self) -> GameStats:
+        """Run detection/tracking/stats pipeline. Returns GameStats. Does not write video."""
+        cap = cv2.VideoCapture(self._video.path)
         if not cap.isOpened():
             cap.release()
-            raise ValueError(f"Cannot open video: {self._video_path}")
+            raise ValueError(f"Cannot open video: {self._video.path}")
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
 
@@ -65,13 +62,9 @@ class Analyzer:
         movement = MovementTracker()
         passes = PassDetector()
         score = ScoreTracker()
-        overlay = Overlay()
 
-        writer: cv2.VideoWriter | None = None
         all_events = []
         player_teams: dict[int, str] = {}
-
-        # Accumulate first 30 frames for team classifier warmup
         warmup_frames: list[np.ndarray] = []
         warmup_bboxes: list[list[tuple[int, int, int, int]]] = []
 
@@ -87,17 +80,14 @@ class Analyzer:
             fd = detector.detect(frame)
             tf = tracker.update(fd, frame_idx)
 
-            # Team classifier: warmup on frames 0-29, fit at frame 30
             if frame_idx < 30:
                 warmup_frames.append(frame)
                 warmup_bboxes.append([p.bbox for p in fd.players])
             elif frame_idx == 30:
                 team_clf.fit(warmup_frames, warmup_bboxes)
-                # Free warmup memory; no longer needed after fit
                 warmup_frames.clear()
                 warmup_bboxes.clear()
 
-            # Assign team and player identity for detected players
             for p in fd.players:
                 if p.track_id is None:
                     continue
@@ -105,54 +95,64 @@ class Analyzer:
                 player_teams[p.track_id] = team
                 player_ident.identify(frame, p.bbox, p.track_id)
 
-            # Track ball-missing warning
             if tf.ball_pos is None:
                 ball_missing_count += 1
                 if ball_missing_count == warn_threshold:
-                    warnings.warn(
-                        f"Ball not detected for 5+ seconds at frame {frame_idx}"
-                    )
+                    warnings.warn(f"Ball not detected for 5+ seconds at frame {frame_idx}")
             else:
                 ball_missing_count = 0
 
-            # Determine possession owner: nearest player to ball
             possession_owner: int | None = None
             if tf.players and tf.ball_pos is not None:
                 nearest = min(tf.players, key=lambda p: _dist(p.court_pos, tf.ball_pos))
                 possession_owner = nearest.track_id
 
-            # Update all stats modules
             poss_events = possession.update(tf, player_teams, frame_idx, fps)
             shot_events = shots.update(tf, player_teams, possession_owner, frame_idx, fps)
             shot_this_frame = any(e.type == "shot" for e in shot_events)
-            pass_events = passes.update(
-                tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame
-            )
+            pass_events = passes.update(tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame)
             movement.update(tf)
             score.update(shot_events)
 
             all_events.extend(poss_events + shot_events + pass_events)
+            frame_idx += 1
 
-            # Write annotated output video if requested
-            if self._output_video:
-                if writer is None:
-                    h, w = frame.shape[:2]
-                    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                    writer = cv2.VideoWriter(self._output_video, fourcc, fps, (w, h))
-                annotated = overlay.render(
-                    frame, score.scores, team_clf.team_colors, frame_idx, fps
-                )
-                writer.write(annotated)
+        cap.release()
+        return self._build_stats(fps, frame_idx, player_teams, player_ident, movement, possession, score, team_clf, all_events)
 
+    def edit_overlay(self, game_stats: GameStats, output_path: str) -> Video:
+        """Render score HUD onto source video using precomputed game_stats. Writes to output_path."""
+        cap = cv2.VideoCapture(self._video.path)
+        if not cap.isOpened():
+            cap.release()
+            raise ValueError(f"Cannot open video: {self._video.path}")
+
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        overlay = Overlay()
+
+        scores = {t.team_id: t.score for t in game_stats.teams}
+        team_colors = {t.team_id: t.color for t in game_stats.teams}
+
+        writer: cv2.VideoWriter | None = None
+        frame_idx = 0
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if writer is None:
+                h, w = frame.shape[:2]
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                writer = cv2.VideoWriter(output_path, fourcc, fps, (w, h))
+            annotated = overlay.render(frame, scores, team_colors, frame_idx, fps)
+            writer.write(annotated)
             frame_idx += 1
 
         cap.release()
         if writer:
             writer.release()
 
-        return self._build_stats(
-            fps, frame_idx, player_teams, player_ident, movement, possession, score, team_clf, all_events
-        )
+        return Video(path=output_path)
 
     def _build_stats(
         self,
@@ -183,11 +183,9 @@ class Analyzer:
             ),
         }
 
-        # Aggregate per-player stats from events
         shot_makes: dict[int, int] = {}
         shot_attempts: dict[int, int] = {}
         passes_made: dict[int, int] = {}
-        # TODO: passes_received requires a receiver_id field on GameEvent (not yet in model)
         passes_received: dict[int, int] = {}
         possession_frames: dict[int, int] = {}
 
@@ -222,7 +220,7 @@ class Analyzer:
                 teams[team_id].players.append(ps)
 
         return GameStats(
-            video_path=self._video_path,
+            video=self._video,
             duration_seconds=total_frames / fps if fps > 0 else 0.0,
             fps=fps,
             teams=list(teams.values()),

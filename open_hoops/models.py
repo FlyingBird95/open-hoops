@@ -11,6 +11,11 @@ class Point(BaseModel):
 class Video(BaseModel):
     path: str
 
+    def __init__(self, path: str | None = None, **data):
+        if path is not None:
+            data["path"] = path
+        super().__init__(**data)
+
 
 class PlayerStats(BaseModel):
     player_id: int | None
