@@ -23,7 +23,7 @@ def make_mock_cap(n_frames=10, width=1280, height=720, fps=30.0):
 
     cap.read.side_effect = _read
     cap.get.side_effect = lambda prop: {
-        0: fps,
+        5: fps,   # cv2.CAP_PROP_FPS
         7: n_frames,
     }.get(prop, 0)
     cap.isOpened.return_value = True

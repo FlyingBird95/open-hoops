@@ -26,7 +26,8 @@ def _hsv_histogram(crop: np.ndarray) -> np.ndarray:
 def _dominant_bgr(crop: np.ndarray) -> tuple[int, int, int]:
     pixels = crop.reshape(-1, 3).astype(np.float32)
     if len(pixels) < 4:
-        return (int(pixels[0, 0]), int(pixels[0, 1]), int(pixels[0, 2]))
+        b, g, r = int(pixels[0, 0]), int(pixels[0, 1]), int(pixels[0, 2])
+        return r, g, b
     km = KMeans(n_clusters=1, n_init=1, random_state=0).fit(pixels)
     b, g, r = km.cluster_centers_[0].astype(int)
     return int(r), int(g), int(b)

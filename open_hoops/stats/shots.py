@@ -13,7 +13,8 @@ def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
 class ShotDetector:
     def __init__(self, hoop_radius_m: float = 0.45) -> None:
         self._radius = hoop_radius_m
-        self._in_region: dict[int, bool] = {}  # hoop_idx -> was ball in region last frame
+        self._in_region: dict[int, bool] = {}
+        self._made: dict[int, bool] = {}  # hoop_idx -> current entry already produced a make
 
     def update(
         self,
@@ -42,7 +43,8 @@ class ShotDetector:
                     player_id=possession_owner,
                     team_id=team_id,
                 ))
-            if dist <= _MAKE_RADIUS and was_in:
+                self._made[idx] = False
+            if dist <= _MAKE_RADIUS and was_in and not self._made.get(idx, False):
                 events.append(GameEvent(
                     type="make",
                     frame=frame_idx,
@@ -50,7 +52,8 @@ class ShotDetector:
                     player_id=possession_owner,
                     team_id=team_id,
                 ))
-            elif not now_in and was_in:
+                self._made[idx] = True
+            elif not now_in and was_in and not self._made.get(idx, False):
                 events.append(GameEvent(
                     type="miss",
                     frame=frame_idx,
@@ -59,6 +62,8 @@ class ShotDetector:
                     team_id=team_id,
                 ))
 
+            if not now_in:
+                self._made[idx] = False
             self._in_region[idx] = now_in
 
         return events
