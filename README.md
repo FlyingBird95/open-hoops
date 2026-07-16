@@ -1,2 +1,2 @@
 # open-hoops
-Extract Basketball status from a video using YOLO26
+Extract Basketball stats from a video using YOLO26
