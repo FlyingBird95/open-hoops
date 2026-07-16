@@ -8,6 +8,10 @@ class Point(BaseModel):
     y: float
 
 
+class Video(BaseModel):
+    path: str
+
+
 class PlayerStats(BaseModel):
     player_id: int | None
     team_id: str
@@ -37,7 +41,7 @@ class GameEvent(BaseModel):
 
 
 class GameStats(BaseModel):
-    video_path: str
+    video: Video
     duration_seconds: float
     fps: float
     teams: list[TeamStats] = Field(default_factory=list)
