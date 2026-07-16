@@ -49,7 +49,7 @@ class Detector:
                 bbox=(x1, y1, x2, y2),
                 conf=float(conf),
                 class_name=name,
-                track_id=int(tid) if tid is not None else None,
+                track_id=int(tid) if (tid is not None and int(tid) != -1) else None,
             )
             if name == "player":
                 fd.players.append(det)
