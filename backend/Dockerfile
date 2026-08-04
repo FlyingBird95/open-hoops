@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
-RUN pip install -e "." && pip install -e /open_hoops
+RUN pip install -e "."
 
 COPY . .
 
