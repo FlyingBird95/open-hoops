@@ -29,6 +29,9 @@ line-length = 100
 python_version = "3.10"
 strict = true
 
+[tool.pytest.ini_options]
+testpaths = ["open_hoops/tests"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["open_hoops*"]
