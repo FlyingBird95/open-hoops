@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: open_hoops
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      OPEN_HOOPS_DATABASE_URL: postgresql://postgres:postgres@db:5432/open_hoops
+      OPEN_HOOPS_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./open_hoops:/open_hoops
+      - uploads:/app/uploads
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: ./backend
+    environment:
+      OPEN_HOOPS_DATABASE_URL: postgresql://postgres:postgres@db:5432/open_hoops
+      OPEN_HOOPS_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./open_hoops:/open_hoops
+      - uploads:/app/uploads
+    command: celery -A app.celery_app:celery worker --loglevel=info -Q analysis
+
+volumes:
+  pgdata:
+  uploads:
