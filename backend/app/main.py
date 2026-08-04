@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import teams, players
+from app.routers import teams, players, videos
 
 app = FastAPI(title="Open Hoops API")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 
 app.include_router(teams.router)
 app.include_router(players.router)
+app.include_router(videos.router)
 
 
 @app.get("/api/health")

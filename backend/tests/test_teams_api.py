@@ -7,24 +7,8 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
 from app.main import app
 
-TEST_DB_URL = "sqlite:///:memory:"
-engine = create_engine(
-    TEST_DB_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestSession = sessionmaker(bind=engine)
-
-
-def override_get_db():
-    db = TestSession()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
+# Re-use the shared engine/override from conftest.py
+from tests.conftest import engine, TestSession
 
 
 @pytest.fixture(autouse=True)
