@@ -2,8 +2,8 @@ import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import MyTeam from "./pages/MyTeam";
 import Opponents from "./pages/Opponents";
-import Videos from "./pages/Videos";
-import VideoDetail from "./pages/VideoDetail";
+import Games from "./pages/Games";
+import GameDetail from "./pages/GameDetail";
 
 const queryClient = new QueryClient();
 
@@ -19,16 +19,16 @@ export default function App() {
             <NavLink to="/opponents" className={({ isActive }) => isActive ? "font-bold" : ""}>
               Opponents
             </NavLink>
-            <NavLink to="/videos" className={({ isActive }) => isActive ? "font-bold" : ""}>
-              Videos
+            <NavLink to="/games" className={({ isActive }) => isActive ? "font-bold" : ""}>
+              Games
             </NavLink>
           </nav>
           <main className="p-6">
             <Routes>
               <Route path="/" element={<MyTeam />} />
               <Route path="/opponents" element={<Opponents />} />
-              <Route path="/videos" element={<Videos />} />
-              <Route path="/videos/:uid" element={<VideoDetail />} />
+              <Route path="/games" element={<Games />} />
+              <Route path="/games/:uid" element={<GameDetail />} />
             </Routes>
           </main>
         </div>

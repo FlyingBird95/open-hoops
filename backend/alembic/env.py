@@ -5,9 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# Import models so Alembic can detect schema changes
-from app.database import Base
-from app.models import Team, Player, Video  # noqa: F401
+from open_hoops.db import Base
+from open_hoops.db.models import Team, Player, Game, GameTeamStats, GamePlayerStats, GameEvent  # noqa: F401
 from app.config import settings
 
 # this is the Alembic Config object, which provides
@@ -65,9 +64,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

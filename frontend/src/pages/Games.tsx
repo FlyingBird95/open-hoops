@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { teamsApi, videosApi } from "../lib/api";
-import type { Team, Video } from "../lib/api";
+import { teamsApi, gamesApi } from "../lib/api";
+import type { Team, Game } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,18 +16,21 @@ const STATUS_COLORS: Record<string, string> = {
   failed: "bg-red-500",
 };
 
-export default function Videos() {
+export default function Games() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [awayUid, setAwayUid] = useState("");
+  const [homeColor, setHomeColor] = useState("");
+  const [awayColor, setAwayColor] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const { data: ownTeams } = useQuery({ queryKey: ["teams", "own"], queryFn: () => teamsApi.list(true) });
   const { data: opponents } = useQuery({ queryKey: ["teams", "opponents"], queryFn: () => teamsApi.list(false) });
-  const { data: videos } = useQuery({ queryKey: ["videos"], queryFn: videosApi.list, refetchInterval: 5000 });
+  const { data: games } = useQuery({ queryKey: ["games"], queryFn: gamesApi.list, refetchInterval: 5000 });
 
   const homeTeam = ownTeams?.[0];
+  const awayTeam = opponents?.find((t) => t.uid === awayUid);
 
   const upload = useMutation({
     mutationFn: () => {
@@ -36,14 +39,18 @@ export default function Videos() {
       formData.append("date", date);
       formData.append("home_team_uid", homeTeam!.uid);
       formData.append("away_team_uid", awayUid);
+      formData.append("home_team_color", homeColor || homeTeam!.home_color);
+      formData.append("away_team_color", awayColor || awayTeam!.home_color);
       formData.append("file", file!);
-      return videosApi.upload(formData);
+      return gamesApi.upload(formData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({ queryKey: ["games"] });
       setName("");
-      setDate("");
+      setDate(new Date().toISOString().slice(0, 10));
       setAwayUid("");
+      setHomeColor("");
+      setAwayColor("");
       setFile(null);
     },
   });
@@ -52,30 +59,71 @@ export default function Videos() {
     <div className="space-y-6 max-w-3xl">
       <Card>
         <CardHeader>
-          <CardTitle>Upload Video</CardTitle>
+          <CardTitle>Upload Game</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input placeholder="Video name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input placeholder="Game name" value={name} onChange={(e) => setName(e.target.value)} />
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Home Team</label>
               <p className="font-medium">{homeTeam?.name || "No team set"}</p>
+              {homeTeam && (
+                <div className="flex gap-2 items-center">
+                  <label className="text-xs text-muted-foreground">Jersey color:</label>
+                  <button
+                    type="button"
+                    className={`w-6 h-6 rounded border-2 ${(!homeColor || homeColor === homeTeam.home_color) ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: homeTeam.home_color }}
+                    onClick={() => setHomeColor(homeTeam.home_color)}
+                    title="Home"
+                  />
+                  <button
+                    type="button"
+                    className={`w-6 h-6 rounded border-2 ${homeColor === homeTeam.away_color ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: homeTeam.away_color }}
+                    onClick={() => setHomeColor(homeTeam.away_color)}
+                    title="Away"
+                  />
+                </div>
+              )}
             </div>
-            <div>
+            <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Away Team</label>
               <select
                 className="w-full border rounded px-3 py-2"
                 value={awayUid}
-                onChange={(e) => setAwayUid(e.target.value)}
+                onChange={(e) => {
+                  setAwayUid(e.target.value);
+                  setAwayColor("");
+                }}
               >
                 <option value="">Select opponent...</option>
                 {opponents?.map((t: Team) => (
                   <option key={t.uid} value={t.uid}>{t.name}</option>
                 ))}
               </select>
+              {awayTeam && (
+                <div className="flex gap-2 items-center">
+                  <label className="text-xs text-muted-foreground">Jersey color:</label>
+                  <button
+                    type="button"
+                    className={`w-6 h-6 rounded border-2 ${(!awayColor || awayColor === awayTeam.home_color) ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: awayTeam.home_color }}
+                    onClick={() => setAwayColor(awayTeam.home_color)}
+                    title="Home"
+                  />
+                  <button
+                    type="button"
+                    className={`w-6 h-6 rounded border-2 ${awayColor === awayTeam.away_color ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: awayTeam.away_color }}
+                    onClick={() => setAwayColor(awayTeam.away_color)}
+                    title="Away"
+                  />
+                </div>
+              )}
             </div>
           </div>
           <Input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
@@ -87,7 +135,7 @@ export default function Videos() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Videos</CardTitle>
+          <CardTitle>Games</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -99,10 +147,10 @@ export default function Videos() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {videos?.map((v: Video) => (
+              {games?.map((v: Game) => (
                 <TableRow key={v.uid}>
                   <TableCell>
-                    <Link to={`/videos/${v.uid}`} className="text-blue-600 underline">{v.name}</Link>
+                    <Link to={`/games/${v.uid}`} className="text-blue-600 underline">{v.name}</Link>
                   </TableCell>
                   <TableCell>{v.date}</TableCell>
                   <TableCell>

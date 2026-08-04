@@ -1,4 +1,4 @@
-from app.models import Team, Player, Video, VideoStatus, generate_uid
+from open_hoops.db import Team, Player, Game, GameStatus, generate_uid
 from datetime import date
 
 
@@ -30,21 +30,21 @@ def test_player_belongs_to_team(db):
     assert player.jersey_number == 23
 
 
-def test_video_creation(db):
+def test_game_creation(db):
     home = Team(name="Lakers", is_own=True)
     away = Team(name="Celtics", is_own=False)
     db.add_all([home, away])
     db.commit()
-    video = Video(
+    game = Game(
         name="Game 1",
         date=date(2026, 1, 15),
         file_path="/uploads/game1.mp4",
         home_team_id=home.id,
         away_team_id=away.id,
     )
-    db.add(video)
+    db.add(game)
     db.commit()
-    db.refresh(video)
-    assert video.status == VideoStatus.pending
-    assert video.stats_json is None
-    assert video.home_team.name == "Lakers"
+    db.refresh(game)
+    assert game.status == GameStatus.pending
+    assert game.duration_seconds == 0.0
+    assert game.home_team.name == "Lakers"

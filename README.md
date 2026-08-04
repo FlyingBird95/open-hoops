@@ -61,6 +61,25 @@ with open("stats.json", "w") as f:
     json.dump(stats.model_dump(), f, indent=2)
 ```
 
+### With a roster (recommended for accuracy)
+
+Provide known jersey colors and player numbers to improve team classification and jersey OCR:
+
+```python
+from open_hoops import OpenHoop, Roster, TeamRoster, Video
+
+roster = Roster(
+    home=TeamRoster(color="#ffffff", players=[3, 11, 23, 30, 42]),
+    away=TeamRoster(color="#1d428a", players=[1, 7, 13, 24, 35]),
+)
+
+stats = OpenHoop(Video("game.mp4"), roster=roster).extract_stats()
+```
+
+When a roster is provided:
+- **Team assignment** uses color distance to known jersey colors instead of unsupervised clustering
+- **Jersey OCR** rejects numbers not in the roster, reducing false reads
+
 ### Example output
 
 ```json
@@ -122,8 +141,8 @@ with open("stats.json", "w") as f:
 Video frames
   → YOLO detection    (players, ball, hoop detected every frame)
   → ByteTrack         (stable track IDs across the full game)
-  → Jersey color      (K-means clustering → team_a / team_b assignment)
-  → OCR               (EasyOCR → player jersey numbers, majority-voted every 30 frames)
+  → Jersey color      (roster color matching, or K-means clustering → team_a / team_b)
+  → OCR               (EasyOCR → jersey numbers, filtered by roster if provided)
   → Stats extraction  (possession, shots, passes, movement — all parallel)
   → Score overlay     (optional OpenCV HUD with live scoreboard)
   → GameStats         (Pydantic model, JSON-serializable)

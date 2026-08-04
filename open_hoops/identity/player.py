@@ -13,10 +13,11 @@ class PlayerIdentifier:
     of last 10 readings.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, valid_numbers: set[int] | None = None) -> None:
         self._reader: easyocr.Reader | None = None
         self._frame_counter: dict[int, int] = {}
         self._history: dict[int, list[int]] = {}
+        self._valid_numbers = valid_numbers
 
     def _get_reader(self) -> easyocr.Reader:
         """Lazy-load EasyOCR reader on first call."""
@@ -52,7 +53,9 @@ class PlayerIdentifier:
         for text in results:
             digits = re.sub(r"\D", "", text)
             if digits:
-                return int(digits[:2])
+                num = int(digits[:2])
+                if self._valid_numbers is None or num in self._valid_numbers:
+                    return num
 
         return None
 

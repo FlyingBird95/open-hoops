@@ -17,6 +17,16 @@ class Video(BaseModel):
         super().__init__(**data)
 
 
+class TeamRoster(BaseModel):
+    color: str
+    players: list[int] = Field(default_factory=list)
+
+
+class Roster(BaseModel):
+    home: TeamRoster
+    away: TeamRoster
+
+
 class PlayerStats(BaseModel):
     player_id: int | None
     team_id: str

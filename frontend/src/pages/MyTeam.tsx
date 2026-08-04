@@ -7,12 +7,47 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+function CreateTeamForm() {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [homeColor, setHomeColor] = useState("#000000");
+  const [awayColor, setAwayColor] = useState("#ffffff");
+
+  const createTeam = useMutation({
+    mutationFn: () => teamsApi.create({ name, is_own: true, home_color: homeColor, away_color: awayColor }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+  });
+
+  return (
+    <Card className="max-w-md">
+      <CardHeader>
+        <CardTitle>Create Your Team</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label className="text-sm text-muted-foreground">Team Name</label>
+          <Input placeholder="e.g. Lakers" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="flex gap-4 items-center">
+          <label className="text-sm">Home Color</label>
+          <input type="color" value={homeColor} onChange={(e) => setHomeColor(e.target.value)} />
+          <label className="text-sm">Away Color</label>
+          <input type="color" value={awayColor} onChange={(e) => setAwayColor(e.target.value)} />
+        </div>
+        <Button onClick={() => createTeam.mutate()} disabled={!name}>
+          Create Team
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MyTeam() {
   const queryClient = useQueryClient();
   const [newNumber, setNewNumber] = useState("");
   const [newName, setNewName] = useState("");
 
-  const { data: teams } = useQuery({ queryKey: ["teams", "own"], queryFn: () => teamsApi.list(true) });
+  const { data: teams, isLoading } = useQuery({ queryKey: ["teams", "own"], queryFn: () => teamsApi.list(true) });
   const team = teams?.[0];
 
   const { data: players } = useQuery({
@@ -40,7 +75,8 @@ export default function MyTeam() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["players"] }),
   });
 
-  if (!team) return <p>Loading...</p>;
+  if (isLoading) return <p>Loading...</p>;
+  if (!team) return <CreateTeamForm />;
 
   return (
     <div className="space-y-6 max-w-2xl">

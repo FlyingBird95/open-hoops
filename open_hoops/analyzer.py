@@ -1,10 +1,12 @@
 from __future__ import annotations
 import math
 import warnings
+from datetime import timedelta
+
 import cv2
 import numpy as np
 
-from open_hoops.models import GameStats, TeamStats, PlayerStats, Point, Video
+from open_hoops.models import GameStats, TeamStats, PlayerStats, Point, Roster, Video
 from open_hoops.detector import Detector
 from open_hoops.tracker import Tracker, compute_homography
 from open_hoops.identity.team import TeamClassifier
@@ -16,14 +18,11 @@ from open_hoops.stats.passes import PassDetector
 from open_hoops.stats.score import ScoreTracker
 from open_hoops.overlay import Overlay
 
-_DEFAULT_SRC = np.array(
-    [[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32
-)
-_DEFAULT_DST = np.array(
-    [[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32
-)
+_DEFAULT_SRC = np.array([[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32)
+_DEFAULT_DST = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)
 
-_BALL_MISSING_WARN_FRAMES = 5 * 30  # baseline at 30 fps
+_DEFAULT_FPS = 30.0
+_BALL_MISSING_WARN_TIME = timedelta(seconds=5)
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -37,11 +36,13 @@ class OpenHoop:
         model_path: str = "yolo11n.pt",
         src_pts: np.ndarray | None = None,
         dst_pts: np.ndarray | None = None,
+        roster: Roster | None = None,
     ) -> None:
         self._video = video
         self._model_path = model_path
         self._src = src_pts if src_pts is not None else _DEFAULT_SRC
         self._dst = dst_pts if dst_pts is not None else _DEFAULT_DST
+        self._roster = roster
 
     def extract_stats(self) -> GameStats:
         """Run detection/tracking/stats pipeline. Returns GameStats. Does not write video."""
@@ -50,13 +51,16 @@ class OpenHoop:
             cap.release()
             raise ValueError(f"Cannot open video: {self._video.path}")
 
-        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        fps = cap.get(cv2.CAP_PROP_FPS) or _DEFAULT_FPS
 
         H = compute_homography(self._src, self._dst)
         detector = Detector(self._model_path)
         tracker = Tracker(H)
-        team_clf = TeamClassifier()
-        player_ident = PlayerIdentifier()
+        team_clf = TeamClassifier(roster=self._roster)
+        valid_numbers: set[int] | None = None
+        if self._roster:
+            valid_numbers = set(self._roster.home.players + self._roster.away.players)
+        player_ident = PlayerIdentifier(valid_numbers=valid_numbers)
         possession = PossessionTracker()
         shots = ShotDetector()
         movement = MovementTracker()
@@ -70,7 +74,7 @@ class OpenHoop:
 
         frame_idx = 0
         ball_missing_count = 0
-        warn_threshold = int(_BALL_MISSING_WARN_FRAMES * (fps / 30.0)) if fps > 0 else _BALL_MISSING_WARN_FRAMES
+        warn_threshold = int(_BALL_MISSING_WARN_TIME.total_seconds() * fps)
 
         while True:
             ret, frame = cap.read()
@@ -110,7 +114,9 @@ class OpenHoop:
             poss_events = possession.update(tf, player_teams, frame_idx, fps)
             shot_events = shots.update(tf, player_teams, possession_owner, frame_idx, fps)
             shot_this_frame = any(e.type == "shot" for e in shot_events)
-            pass_events = passes.update(tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame)
+            pass_events = passes.update(
+                tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame
+            )
             movement.update(tf)
             score.update(shot_events)
 
@@ -118,7 +124,17 @@ class OpenHoop:
             frame_idx += 1
 
         cap.release()
-        return self._build_stats(fps, frame_idx, player_teams, player_ident, movement, possession, score, team_clf, all_events)
+        return self._build_stats(
+            fps,
+            frame_idx,
+            player_teams,
+            player_ident,
+            movement,
+            possession,
+            score,
+            team_clf,
+            all_events,
+        )
 
     def edit_overlay(self, game_stats: GameStats, output_path: str) -> Video:
         """Render score HUD onto source video using precomputed game_stats. Writes to output_path."""
@@ -127,7 +143,7 @@ class OpenHoop:
             cap.release()
             raise ValueError(f"Cannot open video: {self._video.path}")
 
-        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        fps = cap.get(cv2.CAP_PROP_FPS) or _DEFAULT_FPS
         overlay = Overlay()
 
         scores = {t.team_id: t.score for t in game_stats.teams}

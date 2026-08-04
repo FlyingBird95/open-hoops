@@ -19,6 +19,12 @@ class FrameDetections:
     hoops: list[Detection] = field(default_factory=list)
 
 
+_CLASS_MAP = {
+    "person": "player",
+    "sports ball": "ball",
+}
+
+
 class Detector:
     def __init__(self, model_path: str = "yolo11n.pt") -> None:
         self._model = YOLO(model_path)
@@ -37,13 +43,12 @@ class Detector:
         confs = boxes.conf.cpu().numpy()
         classes = boxes.cls.cpu().numpy().astype(int)
         track_ids = (
-            boxes.id.cpu().numpy().astype(int)
-            if boxes.id is not None
-            else [None] * len(bboxes)
+            boxes.id.cpu().numpy().astype(int) if boxes.id is not None else [None] * len(bboxes)
         )
 
         for bbox, conf, cls_id, tid in zip(bboxes, confs, classes, track_ids):
-            name = r.names[cls_id]
+            raw_name = r.names[cls_id]
+            name = _CLASS_MAP.get(raw_name, raw_name)
             x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
             det = Detection(
                 bbox=(x1, y1, x2, y2),

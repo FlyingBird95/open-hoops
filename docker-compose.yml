@@ -43,7 +43,7 @@ services:
       - ./backend:/app
       - ./open_hoops:/open_hoops
       - uploads:/app/uploads
-    command: bash -c "pip install -e /open_hoops && celery -A app.celery_app:celery worker --loglevel=info -Q analysis"
+    command: bash -c "pip install -e /open_hoops && celery -A worker.celery_app:celery worker --loglevel=info -Q analysis"
 
 volumes:
   pgdata:

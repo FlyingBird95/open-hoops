@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database import Base
+from open_hoops.db import Base
 from app.main import app
 
 from tests.conftest import engine
@@ -19,16 +19,28 @@ client = TestClient(app)
 
 @pytest.fixture
 def team_uid():
-    resp = client.post("/api/teams", json={"name": "Lakers", "is_own": True})
-    return resp.json()["uid"]
+    resp = client.post(
+        "/api/teams",
+        json={"data": {"type": "teams", "attributes": {"name": "Lakers", "is_own": True}}},
+    )
+    return resp.json()["data"]["uid"]
 
 
 def test_create_player(team_uid):
-    resp = client.post("/api/players", json={"team_uid": team_uid, "jersey_number": 23, "name": "LeBron"})
+    resp = client.post(
+        "/api/players",
+        json={
+            "data": {
+                "type": "players",
+                "attributes": {"jersey_number": 23, "name": "LeBron"},
+                "relationships": {"team": {"data": {"type": "teams", "uid": team_uid}}},
+            }
+        },
+    )
     assert resp.status_code == 201
-    data = resp.json()
-    assert data["jersey_number"] == 23
-    assert data["team_uid"] == team_uid
+    resource = resp.json()["data"]
+    assert resource["attributes"]["jersey_number"] == 23
+    assert resource["relationships"]["team"]["data"]["uid"] == team_uid
 
 
 def test_list_players_requires_team():
@@ -37,23 +49,53 @@ def test_list_players_requires_team():
 
 
 def test_list_players(team_uid):
-    client.post("/api/players", json={"team_uid": team_uid, "jersey_number": 23})
-    client.post("/api/players", json={"team_uid": team_uid, "jersey_number": 3})
+    for num in (23, 3):
+        client.post(
+            "/api/players",
+            json={
+                "data": {
+                    "type": "players",
+                    "attributes": {"jersey_number": num},
+                    "relationships": {"team": {"data": {"type": "teams", "uid": team_uid}}},
+                }
+            },
+        )
     resp = client.get(f"/api/players?team={team_uid}")
-    assert len(resp.json()) == 2
+    assert len(resp.json()["data"]) == 2
 
 
 def test_update_player(team_uid):
-    resp = client.post("/api/players", json={"team_uid": team_uid, "jersey_number": 23})
-    uid = resp.json()["uid"]
-    resp = client.put(f"/api/players/{uid}", json={"name": "LeBron James"})
-    assert resp.json()["name"] == "LeBron James"
+    resp = client.post(
+        "/api/players",
+        json={
+            "data": {
+                "type": "players",
+                "attributes": {"jersey_number": 23},
+                "relationships": {"team": {"data": {"type": "teams", "uid": team_uid}}},
+            }
+        },
+    )
+    uid = resp.json()["data"]["uid"]
+    resp = client.patch(
+        f"/api/players/{uid}",
+        json={"data": {"type": "players", "uid": uid, "attributes": {"name": "LeBron James"}}},
+    )
+    assert resp.json()["data"]["attributes"]["name"] == "LeBron James"
 
 
 def test_delete_player(team_uid):
-    resp = client.post("/api/players", json={"team_uid": team_uid, "jersey_number": 23})
-    uid = resp.json()["uid"]
+    resp = client.post(
+        "/api/players",
+        json={
+            "data": {
+                "type": "players",
+                "attributes": {"jersey_number": 23},
+                "relationships": {"team": {"data": {"type": "teams", "uid": team_uid}}},
+            }
+        },
+    )
+    uid = resp.json()["data"]["uid"]
     resp = client.delete(f"/api/players/{uid}")
     assert resp.status_code == 204
     resp = client.get(f"/api/players?team={team_uid}")
-    assert len(resp.json()) == 0
+    assert len(resp.json()["data"]) == 0
