@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from app.config import settings
 from app.routers.teams.router import router as teams_router
 from app.routers.players.router import router as players_router
 from app.routers.games.router import router as games_router
@@ -18,6 +20,7 @@ app.add_middleware(
 app.include_router(teams_router)
 app.include_router(players_router)
 app.include_router(games_router)
+app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 
 @app.get("/api/health")

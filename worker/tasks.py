@@ -32,17 +32,17 @@ def analyze_game(game_uid: str) -> None:
         game.status = GameStatus.processing
         db.commit()
 
-        home_players = db.query(Player).filter(Player.team_id == game.home_team_id).all()
-        away_players = db.query(Player).filter(Player.team_id == game.away_team_id).all()
+        own_players = db.query(Player).filter(Player.team_id == game.own_team_id).all()
+        opponent_players = db.query(Player).filter(Player.team_id == game.opponent_team_id).all()
 
         roster = Roster(
             home=TeamRoster(
-                color=game.home_team_color,
-                players=[p.jersey_number for p in home_players],
+                color=game.own_team_color,
+                players=[p.jersey_number for p in own_players],
             ),
             away=TeamRoster(
-                color=game.away_team_color,
-                players=[p.jersey_number for p in away_players],
+                color=game.opponent_team_color,
+                players=[p.jersey_number for p in opponent_players],
             ),
         )
 
@@ -113,11 +113,11 @@ def analyze_game(game_uid: str) -> None:
         game.fps = fps
 
         player_map = {}
-        for p in home_players + away_players:
+        for p in own_players + opponent_players:
             player_map[(p.team_id, p.jersey_number)] = p
 
         for key, ts in all_team_stats.items():
-            team_id = game.home_team_id if key == "home" else game.away_team_id
+            team_id = game.own_team_id if key == "team_a" else game.opponent_team_id
             avg_poss = ts["possession_pct"] / ts["count"] if ts["count"] else 0
             db.add(
                 GameTeamStats(
@@ -129,7 +129,7 @@ def analyze_game(game_uid: str) -> None:
             )
 
         for (team_key, jersey), ps in all_player_stats.items():
-            team_id = game.home_team_id if team_key == "home" else game.away_team_id
+            team_id = game.own_team_id if team_key == "team_a" else game.opponent_team_id
             player = player_map.get((team_id, jersey))
             db.add(
                 GamePlayerStats(
@@ -148,10 +148,10 @@ def analyze_game(game_uid: str) -> None:
 
         for ev in all_events:
             team_id = None
-            if ev["team_id"] == "home":
-                team_id = game.home_team_id
-            elif ev["team_id"] == "away":
-                team_id = game.away_team_id
+            if ev["team_id"] == "team_a":
+                team_id = game.own_team_id
+            elif ev["team_id"] == "team_b":
+                team_id = game.opponent_team_id
 
             player = None
             if ev["player_id"] is not None and team_id is not None:

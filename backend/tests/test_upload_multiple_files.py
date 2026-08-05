@@ -46,8 +46,8 @@ def test_upload_multiple_files(mock_task, teams):
         data={
             "name": "Test Game",
             "date": "2026-08-05",
-            "home_team_uid": home_uid,
-            "away_team_uid": away_uid,
+            "own_team_uid": home_uid,
+            "opponent_team_uid": away_uid,
         },
         files=files,
     )
@@ -67,8 +67,8 @@ def test_upload_single_file_via_files_param(mock_task, teams):
         data={
             "name": "Single File Game",
             "date": "2026-08-05",
-            "home_team_uid": home_uid,
-            "away_team_uid": away_uid,
+            "own_team_uid": home_uid,
+            "opponent_team_uid": away_uid,
         },
         files=[("files", ("game.mp4", io.BytesIO(b"fake"), "video/mp4"))],
     )

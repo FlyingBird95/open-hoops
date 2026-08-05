@@ -69,10 +69,10 @@ export interface Game {
   name: string;
   date: string;
   status: "pending" | "processing" | "done" | "failed";
-  home_team_uid: string;
-  away_team_uid: string;
-  home_team_color: string;
-  away_team_color: string;
+  own_team_uid: string;
+  opponent_team_uid: string;
+  own_team_color: string;
+  opponent_team_color: string;
   duration_seconds: number;
   fps: number;
   file_count: number;
@@ -105,6 +105,14 @@ export interface GameEventData {
   timestamp_sec: number;
   team_uid?: string;
   player_uid?: string;
+}
+
+export interface GameFileData {
+  uid: string;
+  original_filename: string;
+  position: number;
+  size_bytes: number;
+  url: string;
 }
 
 export interface GameStatsResponse {
@@ -187,6 +195,10 @@ export const gamesApi = {
         player_uid: r.relationships?.player?.data?.uid,
       })),
     };
+  },
+  files: async (uid: string): Promise<GameFileData[]> => {
+    const { data } = await client.get(`/games/${uid}/files`);
+    return extractMany(data) as unknown as GameFileData[];
   },
   events: async (uid: string, type?: string): Promise<GameEventData[]> => {
     const params: Record<string, string> = {};

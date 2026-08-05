@@ -18,19 +18,19 @@ from .serialize import serialize_game
 def upload_game(
     name: str = Form(...),
     date: date_type = Form(...),
-    home_team_uid: str = Form(...),
-    away_team_uid: str = Form(...),
-    home_team_color: str = Form("#000000"),
-    away_team_color: str = Form("#ffffff"),
+    own_team_uid: str = Form(...),
+    opponent_team_uid: str = Form(...),
+    own_team_color: str = Form("#000000"),
+    opponent_team_color: str = Form("#ffffff"),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
-    home_team = db.query(Team).filter(Team.uid == home_team_uid).first()
-    if not home_team:
-        raise HTTPException(404, "Home team not found")
-    away_team = db.query(Team).filter(Team.uid == away_team_uid).first()
-    if not away_team:
-        raise HTTPException(404, "Away team not found")
+    own_team = db.query(Team).filter(Team.uid == own_team_uid).first()
+    if not own_team:
+        raise HTTPException(404, "Own team not found")
+    opponent_team = db.query(Team).filter(Team.uid == opponent_team_uid).first()
+    if not opponent_team:
+        raise HTTPException(404, "Opponent team not found")
 
     os.makedirs(settings.upload_dir, exist_ok=True)
     game_uid = generate_uid()
@@ -39,10 +39,10 @@ def upload_game(
         uid=game_uid,
         name=name,
         date=date,
-        home_team_id=home_team.id,
-        away_team_id=away_team.id,
-        home_team_color=home_team_color,
-        away_team_color=away_team_color,
+        own_team_id=own_team.id,
+        opponent_team_id=opponent_team.id,
+        own_team_color=own_team_color,
+        opponent_team_color=opponent_team_color,
     )
     db.add(game)
     db.flush()

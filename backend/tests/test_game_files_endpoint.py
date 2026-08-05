@@ -22,17 +22,17 @@ def game_with_files():
     """Create a game with 2 GameFile rows directly in the DB."""
     db = TestSession()
     try:
-        home_team = Team(uid=generate_uid(), name="Home", is_own=True)
-        away_team = Team(uid=generate_uid(), name="Away", is_own=False)
-        db.add_all([home_team, away_team])
+        own_team = Team(uid=generate_uid(), name="Own", is_own=True)
+        opponent_team = Team(uid=generate_uid(), name="Opponent", is_own=False)
+        db.add_all([own_team, opponent_team])
         db.flush()
 
         game = Game(
             uid=generate_uid(),
             name="Test Game",
             date=datetime.date(2026, 8, 5),
-            home_team_id=home_team.id,
-            away_team_id=away_team.id,
+            own_team_id=own_team.id,
+            opponent_team_id=opponent_team.id,
             status=GameStatus.pending,
         )
         db.add(game)

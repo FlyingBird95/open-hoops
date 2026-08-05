@@ -63,18 +63,18 @@ export default function Games() {
       : <ArrowDown className="inline ml-1 h-3 w-3" />;
   }
 
-  const homeTeam = ownTeams?.[0];
-  const awayTeam = opponents?.find((t) => t.uid === awayUid);
+  const myTeam = ownTeams?.[0];
+  const opponentTeam = opponents?.find((t) => t.uid === awayUid);
 
   const upload = useMutation({
     mutationFn: () => {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("date", date);
-      formData.append("home_team_uid", homeTeam!.uid);
-      formData.append("away_team_uid", awayUid);
-      formData.append("home_team_color", homeColor || homeTeam!.home_color);
-      formData.append("away_team_color", awayColor || awayTeam!.home_color);
+      formData.append("own_team_uid", myTeam!.uid);
+      formData.append("opponent_team_uid", awayUid);
+      formData.append("own_team_color", homeColor || myTeam!.home_color);
+      formData.append("opponent_team_color", awayColor || opponentTeam!.home_color);
       files.forEach((f) => formData.append("files", f));
       return gamesApi.upload(formData);
     },
@@ -102,30 +102,30 @@ export default function Games() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Home Team</label>
-              <p className="font-medium">{homeTeam?.name || "No team set"}</p>
-              {homeTeam && (
+              <label className="text-sm text-muted-foreground">My Team</label>
+              <p className="font-medium">{myTeam?.name || "No team set"}</p>
+              {myTeam && (
                 <div className="flex gap-2 items-center">
                   <label className="text-xs text-muted-foreground">Jersey color:</label>
                   <button
                     type="button"
-                    className={`w-6 h-6 rounded border-2 ${(!homeColor || homeColor === homeTeam.home_color) ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: homeTeam.home_color }}
-                    onClick={() => setHomeColor(homeTeam.home_color)}
+                    className={`w-6 h-6 rounded border-2 ${(!homeColor || homeColor === myTeam.home_color) ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: myTeam.home_color }}
+                    onClick={() => setHomeColor(myTeam.home_color)}
                     title="Home"
                   />
                   <button
                     type="button"
-                    className={`w-6 h-6 rounded border-2 ${homeColor === homeTeam.away_color ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: homeTeam.away_color }}
-                    onClick={() => setHomeColor(homeTeam.away_color)}
+                    className={`w-6 h-6 rounded border-2 ${homeColor === myTeam.away_color ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: myTeam.away_color }}
+                    onClick={() => setHomeColor(myTeam.away_color)}
                     title="Away"
                   />
                 </div>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Away Team</label>
+              <label className="text-sm text-muted-foreground">Opponent</label>
               <select
                 className="w-full border rounded px-3 py-2"
                 value={awayUid}
@@ -139,21 +139,21 @@ export default function Games() {
                   <option key={t.uid} value={t.uid}>{t.name}</option>
                 ))}
               </select>
-              {awayTeam && (
+              {opponentTeam && (
                 <div className="flex gap-2 items-center">
                   <label className="text-xs text-muted-foreground">Jersey color:</label>
                   <button
                     type="button"
-                    className={`w-6 h-6 rounded border-2 ${(!awayColor || awayColor === awayTeam.home_color) ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: awayTeam.home_color }}
-                    onClick={() => setAwayColor(awayTeam.home_color)}
+                    className={`w-6 h-6 rounded border-2 ${(!awayColor || awayColor === opponentTeam.home_color) ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: opponentTeam.home_color }}
+                    onClick={() => setAwayColor(opponentTeam.home_color)}
                     title="Home"
                   />
                   <button
                     type="button"
-                    className={`w-6 h-6 rounded border-2 ${awayColor === awayTeam.away_color ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: awayTeam.away_color }}
-                    onClick={() => setAwayColor(awayTeam.away_color)}
+                    className={`w-6 h-6 rounded border-2 ${awayColor === opponentTeam.away_color ? "border-foreground" : "border-transparent"}`}
+                    style={{ backgroundColor: opponentTeam.away_color }}
+                    onClick={() => setAwayColor(opponentTeam.away_color)}
                     title="Away"
                   />
                 </div>

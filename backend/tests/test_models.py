@@ -38,12 +38,12 @@ def test_game_creation(db):
     game = Game(
         name="Game 1",
         date=date(2026, 1, 15),
-        home_team_id=home.id,
-        away_team_id=away.id,
+        own_team_id=home.id,
+        opponent_team_id=away.id,
     )
     db.add(game)
     db.commit()
     db.refresh(game)
     assert game.status == GameStatus.pending
     assert game.duration_seconds == 0.0
-    assert game.home_team.name == "Lakers"
+    assert game.own_team.name == "Lakers"

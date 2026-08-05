@@ -54,16 +54,16 @@ class Game(Base):
     uid: Mapped[str] = mapped_column(String(32), unique=True, default=generate_uid)
     name: Mapped[str] = mapped_column(String(255))
     date: Mapped[date] = mapped_column(Date)
-    home_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
-    away_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
-    home_team_color: Mapped[str] = mapped_column(String(7), default="#000000")
-    away_team_color: Mapped[str] = mapped_column(String(7), default="#ffffff")
+    own_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
+    opponent_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
+    own_team_color: Mapped[str] = mapped_column(String(7), default="#000000")
+    opponent_team_color: Mapped[str] = mapped_column(String(7), default="#ffffff")
     duration_seconds: Mapped[float] = mapped_column(Float, default=0.0)
     fps: Mapped[float] = mapped_column(Float, default=0.0)
     status: Mapped[GameStatus] = mapped_column(Enum(GameStatus), default=GameStatus.pending)
 
-    home_team: Mapped["Team"] = relationship(foreign_keys=[home_team_id])
-    away_team: Mapped["Team"] = relationship(foreign_keys=[away_team_id])
+    own_team: Mapped["Team"] = relationship(foreign_keys=[own_team_id])
+    opponent_team: Mapped["Team"] = relationship(foreign_keys=[opponent_team_id])
     team_stats: Mapped[list["GameTeamStats"]] = relationship(
         back_populates="game", cascade="all, delete-orphan"
     )

@@ -1,3 +1,5 @@
+import os
+
 from app.models import Game, GameFile, GameTeamStats, GamePlayerStats, GameEvent
 from app.jsonapi import resource_object, relationship_linkage
 
@@ -9,21 +11,22 @@ def serialize_game(game: Game) -> dict:
         attributes={
             "name": game.name,
             "date": game.date.isoformat(),
-            "home_team_color": game.home_team_color,
-            "away_team_color": game.away_team_color,
+            "own_team_color": game.own_team_color,
+            "opponent_team_color": game.opponent_team_color,
             "duration_seconds": game.duration_seconds,
             "fps": game.fps,
             "status": game.status.value,
             "file_count": len(game.files),
         },
         relationships={
-            "home_team": relationship_linkage("teams", game.home_team.uid),
-            "away_team": relationship_linkage("teams", game.away_team.uid),
+            "own_team": relationship_linkage("teams", game.own_team.uid),
+            "opponent_team": relationship_linkage("teams", game.opponent_team.uid),
         },
     )
 
 
 def serialize_game_file(gf: GameFile) -> dict:
+    filename = os.path.basename(gf.file_path)
     return resource_object(
         type="game_files",
         uid=gf.uid,
@@ -31,6 +34,7 @@ def serialize_game_file(gf: GameFile) -> dict:
             "original_filename": gf.original_filename,
             "position": gf.position,
             "size_bytes": gf.size_bytes,
+            "url": f"/uploads/{filename}",
         },
         relationships={
             "game": relationship_linkage("games", gf.game.uid),

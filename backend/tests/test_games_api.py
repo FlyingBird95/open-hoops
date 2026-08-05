@@ -42,8 +42,8 @@ def test_upload_game(mock_task, teams, tmp_path):
         data={
             "name": "Game 1",
             "date": "2026-01-15",
-            "home_team_uid": home_uid,
-            "away_team_uid": away_uid,
+            "own_team_uid": home_uid,
+            "opponent_team_uid": away_uid,
         },
         files=[("files", ("game.mp4", BytesIO(b"fake video content"), "video/mp4"))],
     )
@@ -64,8 +64,8 @@ def test_list_games(mock_task, teams):
         data={
             "name": "G1",
             "date": "2026-01-15",
-            "home_team_uid": home_uid,
-            "away_team_uid": away_uid,
+            "own_team_uid": home_uid,
+            "opponent_team_uid": away_uid,
         },
         files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
@@ -83,8 +83,8 @@ def test_get_game(mock_task, teams):
         data={
             "name": "G1",
             "date": "2026-01-15",
-            "home_team_uid": home_uid,
-            "away_team_uid": away_uid,
+            "own_team_uid": home_uid,
+            "opponent_team_uid": away_uid,
         },
         files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
@@ -103,8 +103,8 @@ def test_upload_game_missing_team(mock_task):
         data={
             "name": "Game 1",
             "date": "2026-01-15",
-            "home_team_uid": "nonexistent",
-            "away_team_uid": "alsononexistent",
+            "own_team_uid": "nonexistent",
+            "opponent_team_uid": "alsononexistent",
         },
         files=[("files", ("game.mp4", BytesIO(b"fake"), "video/mp4"))],
     )
