@@ -6,7 +6,6 @@ from sqlalchemy import pool
 from alembic import context
 
 from open_hoops.db import Base
-from open_hoops.db.models import Team, Player, Game, GameTeamStats, GamePlayerStats, GameEvent  # noqa: F401
 from app.config import settings
 
 # this is the Alembic Config object, which provides

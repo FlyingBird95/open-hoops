@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, Date, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.db.base import Base
@@ -74,6 +74,23 @@ class Game(Base):
     events: Mapped[list["GameEvent"]] = relationship(
         back_populates="game", cascade="all, delete-orphan"
     )
+    files: Mapped[list["GameFile"]] = relationship(
+        back_populates="game", cascade="all, delete-orphan", order_by="GameFile.position"
+    )
+
+
+class GameFile(Base):
+    __tablename__ = "game_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    uid: Mapped[str] = mapped_column(String(32), unique=True, default=generate_uid)
+    game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"))
+    file_path: Mapped[str] = mapped_column(String(1024))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    original_filename: Mapped[str] = mapped_column(String(255))
+    size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+
+    game: Mapped["Game"] = relationship(back_populates="files")
 
 
 class GameTeamStats(Base):
