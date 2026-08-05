@@ -2,8 +2,12 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
+from typing import TYPE_CHECKING
 
 from open_hoops.models import Roster
+
+if TYPE_CHECKING:
+    from open_hoops.pass_one import TrackProfile
 
 
 def _torso_crop(frame: np.ndarray, bbox: tuple[int, int, int, int]) -> np.ndarray:
@@ -103,3 +107,68 @@ class TeamClassifier:
         hist = _hsv_histogram(crop).reshape(1, -1)
         label = int(self._kmeans.predict(hist)[0])
         return "team_a" if label == 0 else "team_b"
+
+
+def assign_teams_from_profiles(
+    tracks: dict[int, TrackProfile],
+    roster: Roster | None,
+) -> None:
+    """Assign team to each TrackProfile by clustering all histograms.
+
+    Mutates profile.team in place. Uses KMeans on combined histograms
+    from all tracks to find 2 clusters, then maps clusters to team_a/team_b.
+    If roster is provided, matches clusters to roster colors.
+    """
+    # Collect all histograms with their track_id
+    all_hists: list[tuple[int, np.ndarray]] = []
+    for tid, profile in tracks.items():
+        for h in profile.histograms:
+            all_hists.append((tid, h))
+
+    if len(all_hists) < 2:
+        # Can't cluster, assign all to team_a
+        for profile in tracks.values():
+            profile.team = "team_a"
+        return
+
+    X = np.array([h for _, h in all_hists])
+    km = KMeans(n_clusters=2, n_init=10, random_state=0).fit(X)
+
+    # Count labels per track — majority vote per track
+    track_label_counts: dict[int, dict[int, int]] = {}
+    for (tid, _), label in zip(all_hists, km.labels_):
+        track_label_counts.setdefault(tid, {})
+        track_label_counts[tid][label] = track_label_counts[tid].get(label, 0) + 1
+
+    # Map cluster labels to team names
+    label_to_team: dict[int, str]
+    if roster:
+        # Match cluster centers to roster colors via HSV histogram of pure color
+        home_bgr = _hex_to_bgr(roster.home.color)
+        away_bgr = _hex_to_bgr(roster.away.color)
+        # Create synthetic histogram for each roster color
+        home_patch = np.full((10, 10, 3), home_bgr, dtype=np.uint8)
+        away_patch = np.full((10, 10, 3), away_bgr, dtype=np.uint8)
+        home_hist = _hsv_histogram(home_patch)
+        away_hist = _hsv_histogram(away_patch)  # noqa: F841 — kept for symmetry
+
+        c0 = km.cluster_centers_[0]
+        c1 = km.cluster_centers_[1]
+        d0_home = np.linalg.norm(c0 - home_hist)
+        d1_home = np.linalg.norm(c1 - home_hist)
+
+        if d0_home <= d1_home:
+            label_to_team = {0: "team_a", 1: "team_b"}
+        else:
+            label_to_team = {1: "team_a", 0: "team_b"}
+    else:
+        label_to_team = {0: "team_a", 1: "team_b"}
+
+    # Assign majority label per track
+    for tid, profile in tracks.items():
+        counts = track_label_counts.get(tid, {})
+        if not counts:
+            profile.team = "team_a"
+            continue
+        majority_label = max(counts, key=counts.get)
+        profile.team = label_to_team[majority_label]

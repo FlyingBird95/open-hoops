@@ -1,5 +1,7 @@
 import numpy as np
-from open_hoops.identity.team import TeamClassifier
+from open_hoops.identity.team import TeamClassifier, assign_teams_from_profiles
+from open_hoops.pass_one import TrackProfile
+from open_hoops.models import Roster, TeamRoster
 
 
 def make_frame_with_player(color_bgr, bbox=(100, 200, 150, 300)):
@@ -49,3 +51,59 @@ def test_team_colors_populated_after_fit():
     clf.fit(frames, bboxes)
     assert "team_a" in clf.team_colors
     assert "team_b" in clf.team_colors
+
+
+def test_assign_teams_two_clusters():
+    # Create two tracks with distinct color histograms
+    red_hist = np.zeros(24)
+    red_hist[0] = 1.0  # hue bin 0 dominant (red-ish)
+    blue_hist = np.zeros(24)
+    blue_hist[8] = 1.0  # hue bin 8 dominant (blue-ish)
+
+    tracks = {
+        1: TrackProfile(track_id=1, histograms=[red_hist] * 5),
+        2: TrackProfile(track_id=2, histograms=[blue_hist] * 5),
+    }
+
+    assign_teams_from_profiles(tracks, roster=None)
+
+    # Both should get assigned, to different teams
+    assert tracks[1].team is not None
+    assert tracks[2].team is not None
+    assert tracks[1].team != tracks[2].team
+
+
+def test_assign_teams_with_roster():
+    roster = Roster(
+        home=TeamRoster(color="#ff0000", players=[1, 2]),
+        away=TeamRoster(color="#0000ff", players=[3, 4]),
+    )
+
+    # Red-dominant histogram
+    red_hist = np.zeros(24)
+    red_hist[0] = 1.0
+    # Blue-dominant histogram
+    blue_hist = np.zeros(24)
+    blue_hist[8] = 1.0
+
+    tracks = {
+        1: TrackProfile(track_id=1, histograms=[red_hist] * 5),
+        2: TrackProfile(track_id=2, histograms=[blue_hist] * 5),
+    }
+
+    assign_teams_from_profiles(tracks, roster=roster)
+    assert tracks[1].team == "team_a"  # red = home = team_a
+    assert tracks[2].team == "team_b"
+
+
+def test_assign_teams_empty_tracks():
+    tracks = {}
+    assign_teams_from_profiles(tracks, roster=None)
+    # Should not crash
+
+
+def test_assign_teams_single_track():
+    hist = np.ones(24) / 24
+    tracks = {1: TrackProfile(track_id=1, histograms=[hist] * 3)}
+    assign_teams_from_profiles(tracks, roster=None)
+    assert tracks[1].team is not None
