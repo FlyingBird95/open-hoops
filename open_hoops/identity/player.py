@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 import re
+from typing import TYPE_CHECKING
+
 import numpy as np
 import easyocr
+
+if TYPE_CHECKING:
+    from open_hoops.pass_one import TrackProfile
 
 
 class PlayerIdentifier:
@@ -105,3 +110,21 @@ class PlayerIdentifier:
 
         self._frame_counter[track_id] = count + 1
         return self._majority(track_id)
+
+
+def finalize_jerseys(tracks: dict[int, "TrackProfile"]) -> None:
+    """Assign jersey number to each TrackProfile using area-weighted majority vote.
+
+    Mutates profile.jersey in place.
+    """
+    for profile in tracks.values():
+        if not profile.ocr_readings:
+            profile.jersey = None
+            continue
+
+        # Weighted vote: accumulate area per jersey number
+        weighted: dict[int, int] = {}
+        for number, area in zip(profile.ocr_readings, profile.bbox_areas):
+            weighted[number] = weighted.get(number, 0) + area
+
+        profile.jersey = max(weighted, key=weighted.get)
