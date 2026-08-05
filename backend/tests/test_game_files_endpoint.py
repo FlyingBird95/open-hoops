@@ -31,7 +31,6 @@ def game_with_files():
             uid=generate_uid(),
             name="Test Game",
             date=datetime.date(2026, 8, 5),
-            file_path="",
             home_team_id=home_team.id,
             away_team_id=away_team.id,
             status=GameStatus.pending,

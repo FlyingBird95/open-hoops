@@ -38,7 +38,6 @@ def test_game_creation(db):
     game = Game(
         name="Game 1",
         date=date(2026, 1, 15),
-        file_path="/uploads/game1.mp4",
         home_team_id=home.id,
         away_team_id=away.id,
     )

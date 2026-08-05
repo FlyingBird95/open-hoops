@@ -50,11 +50,7 @@ def analyze_game(game_uid: str) -> None:
             db.query(GameFile).filter(GameFile.game_id == game.id).order_by(GameFile.position).all()
         )
 
-        # Fallback for legacy games with file_path but no GameFile rows
-        if not game_files and game.file_path:
-            file_paths = [game.file_path]
-        else:
-            file_paths = [gf.file_path for gf in game_files]
+        file_paths = [gf.file_path for gf in game_files]
 
         total_duration = 0.0
         fps = 0.0

@@ -54,7 +54,6 @@ class Game(Base):
     uid: Mapped[str] = mapped_column(String(32), unique=True, default=generate_uid)
     name: Mapped[str] = mapped_column(String(255))
     date: Mapped[date] = mapped_column(Date)
-    file_path: Mapped[str] = mapped_column(String(1024))
     home_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
     away_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
     home_team_color: Mapped[str] = mapped_column(String(7), default="#000000")

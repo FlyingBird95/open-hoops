@@ -39,7 +39,6 @@ def upload_game(
         uid=game_uid,
         name=name,
         date=date,
-        file_path="",
         home_team_id=home_team.id,
         away_team_id=away_team.id,
         home_team_color=home_team_color,

@@ -27,7 +27,6 @@ def test_analyze_merges_multiple_files(db_session, monkeypatch):
         uid=generate_uid(),
         name="Multi",
         date=datetime.date(2026, 8, 5),
-        file_path="",
         home_team_id=home.id,
         away_team_id=away.id,
     )
