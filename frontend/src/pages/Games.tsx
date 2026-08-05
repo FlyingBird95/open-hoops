@@ -23,7 +23,7 @@ export default function Games() {
   const [awayUid, setAwayUid] = useState("");
   const [homeColor, setHomeColor] = useState("");
   const [awayColor, setAwayColor] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   const { data: ownTeams } = useQuery({ queryKey: ["teams", "own"], queryFn: () => teamsApi.list(true) });
   const { data: opponents } = useQuery({ queryKey: ["teams", "opponents"], queryFn: () => teamsApi.list(false) });
@@ -41,7 +41,7 @@ export default function Games() {
       formData.append("away_team_uid", awayUid);
       formData.append("home_team_color", homeColor || homeTeam!.home_color);
       formData.append("away_team_color", awayColor || awayTeam!.home_color);
-      formData.append("file", file!);
+      files.forEach((f) => formData.append("files", f));
       return gamesApi.upload(formData);
     },
     onSuccess: () => {
@@ -51,7 +51,7 @@ export default function Games() {
       setAwayUid("");
       setHomeColor("");
       setAwayColor("");
-      setFile(null);
+      setFiles([]);
     },
   });
 
@@ -126,8 +126,21 @@ export default function Games() {
               )}
             </div>
           </div>
-          <Input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          <Button onClick={() => upload.mutate()} disabled={!name || !date || !awayUid || !file}>
+          <div className="space-y-2">
+            <Input
+              type="file"
+              accept="video/*"
+              multiple
+              onChange={(e) => setFiles(Array.from(e.target.files || []))}
+            />
+            {files.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {files.length} file{files.length > 1 ? "s" : ""} selected
+                ({files.map(f => f.name).join(", ")})
+              </p>
+            )}
+          </div>
+          <Button onClick={() => upload.mutate()} disabled={!name || !date || !awayUid || files.length === 0}>
             Upload & Analyze
           </Button>
         </CardContent>
@@ -143,6 +156,7 @@ export default function Games() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Files</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -153,6 +167,7 @@ export default function Games() {
                     <Link to={`/games/${v.uid}`} className="text-blue-600 underline">{v.name}</Link>
                   </TableCell>
                   <TableCell>{v.date}</TableCell>
+                  <TableCell>{v.file_count}</TableCell>
                   <TableCell>
                     <Badge className={STATUS_COLORS[v.status]}>{v.status}</Badge>
                   </TableCell>
