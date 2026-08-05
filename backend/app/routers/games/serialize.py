@@ -1,4 +1,4 @@
-from app.models import Game, GameTeamStats, GamePlayerStats, GameEvent
+from app.models import Game, GameFile, GameTeamStats, GamePlayerStats, GameEvent
 from app.jsonapi import resource_object, relationship_linkage
 
 
@@ -19,6 +19,21 @@ def serialize_game(game: Game) -> dict:
         relationships={
             "home_team": relationship_linkage("teams", game.home_team.uid),
             "away_team": relationship_linkage("teams", game.away_team.uid),
+        },
+    )
+
+
+def serialize_game_file(gf: GameFile) -> dict:
+    return resource_object(
+        type="game_files",
+        uid=gf.uid,
+        attributes={
+            "original_filename": gf.original_filename,
+            "position": gf.position,
+            "size_bytes": gf.size_bytes,
+        },
+        relationships={
+            "game": relationship_linkage("games", gf.game.uid),
         },
     )
 
