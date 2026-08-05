@@ -32,9 +32,6 @@ def upload_game(
     if not away_team:
         raise HTTPException(404, "Away team not found")
 
-    if not files:
-        raise HTTPException(422, "At least one file is required")
-
     os.makedirs(settings.upload_dir, exist_ok=True)
     game_uid = generate_uid()
 

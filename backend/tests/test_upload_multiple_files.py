@@ -75,20 +75,3 @@ def test_upload_single_file_via_files_param(mock_task, teams):
     assert response.status_code == 201
     data = response.json()["data"]
     assert data["attributes"]["file_count"] == 1
-
-
-@patch("app.routers.games.post.celery_app.send_task")
-def test_upload_no_files_returns_422(mock_task, teams):
-    home_uid, away_uid = teams
-    mock_task.return_value = None
-
-    response = client.post(
-        "/api/games",
-        data={
-            "name": "No Files Game",
-            "date": "2026-08-05",
-            "home_team_uid": home_uid,
-            "away_team_uid": away_uid,
-        },
-    )
-    assert response.status_code == 422
