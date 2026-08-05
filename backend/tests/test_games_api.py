@@ -45,7 +45,7 @@ def test_upload_game(mock_task, teams, tmp_path):
             "home_team_uid": home_uid,
             "away_team_uid": away_uid,
         },
-        files={"file": ("game.mp4", BytesIO(b"fake video content"), "video/mp4")},
+        files=[("files", ("game.mp4", BytesIO(b"fake video content"), "video/mp4"))],
     )
     assert resp.status_code == 201
     resource = resp.json()["data"]
@@ -67,7 +67,7 @@ def test_list_games(mock_task, teams):
             "home_team_uid": home_uid,
             "away_team_uid": away_uid,
         },
-        files={"file": ("g.mp4", BytesIO(b"data"), "video/mp4")},
+        files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
     resp = client.get("/api/games")
     assert len(resp.json()["data"]) == 1
@@ -86,7 +86,7 @@ def test_get_game(mock_task, teams):
             "home_team_uid": home_uid,
             "away_team_uid": away_uid,
         },
-        files={"file": ("g.mp4", BytesIO(b"data"), "video/mp4")},
+        files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
     uid = resp.json()["data"]["uid"]
     resp = client.get(f"/api/games/{uid}")
@@ -106,7 +106,7 @@ def test_upload_game_missing_team(mock_task):
             "home_team_uid": "nonexistent",
             "away_team_uid": "alsononexistent",
         },
-        files={"file": ("game.mp4", BytesIO(b"fake"), "video/mp4")},
+        files=[("files", ("game.mp4", BytesIO(b"fake"), "video/mp4"))],
     )
     assert resp.status_code == 404
 
