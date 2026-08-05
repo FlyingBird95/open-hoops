@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { teamsApi, gamesApi } from "../lib/api";
@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+
+type SortKey = "name" | "date" | "file_count" | "status";
+type SortDir = "asc" | "desc";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-500",
@@ -24,10 +28,40 @@ export default function Games() {
   const [homeColor, setHomeColor] = useState("");
   const [awayColor, setAwayColor] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data: ownTeams } = useQuery({ queryKey: ["teams", "own"], queryFn: () => teamsApi.list(true) });
   const { data: opponents } = useQuery({ queryKey: ["teams", "opponents"], queryFn: () => teamsApi.list(false) });
   const { data: games } = useQuery({ queryKey: ["games"], queryFn: gamesApi.list, refetchInterval: 5000 });
+
+  const sortedGames = useMemo(() => {
+    if (!games) return [];
+    return [...games].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortKey === "date") cmp = a.date.localeCompare(b.date);
+      else if (sortKey === "file_count") cmp = a.file_count - b.file_count;
+      else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [games, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "date" ? "desc" : "asc");
+    }
+  }
+
+  function SortIcon({ column }: { column: SortKey }) {
+    if (sortKey !== column) return <ArrowUpDown className="inline ml-1 h-3 w-3 opacity-40" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="inline ml-1 h-3 w-3" />
+      : <ArrowDown className="inline ml-1 h-3 w-3" />;
+  }
 
   const homeTeam = ownTeams?.[0];
   const awayTeam = opponents?.find((t) => t.uid === awayUid);
@@ -154,14 +188,14 @@ export default function Games() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Files</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>Name<SortIcon column="name" /></TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("date")}>Date<SortIcon column="date" /></TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("file_count")}>Files<SortIcon column="file_count" /></TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>Status<SortIcon column="status" /></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {games?.map((v: Game) => (
+              {sortedGames.map((v: Game) => (
                 <TableRow key={v.uid}>
                   <TableCell>
                     <Link to={`/games/${v.uid}`} className="text-blue-600 underline">{v.name}</Link>
