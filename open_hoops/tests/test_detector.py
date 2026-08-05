@@ -38,7 +38,7 @@ def test_detect_returns_frame_detections(mock_yolo_cls):
         ]
     )
 
-    detector = Detector("yolo26n.pt")
+    detector = Detector("yolo26x.pt")
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
     result = detector.detect(frame)
 

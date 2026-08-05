@@ -26,7 +26,7 @@ _CLASS_MAP = {
 
 
 class Detector:
-    def __init__(self, model_path: str = "yolo11x.pt") -> None:
+    def __init__(self, model_path: str = "yolo26x.pt") -> None:
         self._model = YOLO(model_path)
 
     def detect(self, frame: np.ndarray) -> FrameDetections:

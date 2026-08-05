@@ -33,7 +33,7 @@ class OpenHoop:
     def __init__(
         self,
         video: Video,
-        model_path: str = "yolo26n.pt",
+        model_path: str = "yolo26x.pt",
         src_pts: np.ndarray | None = None,
         dst_pts: np.ndarray | None = None,
         roster: Roster | None = None,
