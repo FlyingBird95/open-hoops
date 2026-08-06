@@ -227,3 +227,7 @@ __marimo__/
 
 # Uploaded video files
 uploads/
+
+# Training artifacts
+open_hoops/training/datasets/
+runs/

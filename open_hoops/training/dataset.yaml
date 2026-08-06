@@ -1,0 +1,12 @@
+# Basketball detection dataset
+# Downloaded from Roboflow Universe at training time
+path: ./datasets/basketball
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: ball
+  1: player
+  2: hoop
+  3: referee
