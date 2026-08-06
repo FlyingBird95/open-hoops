@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import numpy as np
 from dataclasses import dataclass, field
 from ultralytics import YOLO
@@ -22,12 +23,27 @@ class FrameDetections:
 _CLASS_MAP = {
     "person": "player",
     "sports ball": "ball",
+    # Basketball-specific model classes
+    "player": "player",
+    "ball": "ball",
+    "hoop": "hoop",
+    "referee": "referee",
 }
+
+_BASKETBALL_MODEL = "basketball-yolo11x.pt"
+
+
+def _resolve_model_path(default: str) -> str:
+    """Prefer basketball-specific model if available."""
+    if os.path.isfile(_BASKETBALL_MODEL):
+        return _BASKETBALL_MODEL
+    return default
 
 
 class Detector:
     def __init__(self, model_path: str = "yolo26x.pt") -> None:
-        self._model = YOLO(model_path)
+        resolved = _resolve_model_path(model_path)
+        self._model = YOLO(resolved)
 
     def detect(self, frame: np.ndarray) -> FrameDetections:
         results = self._model.track(frame, persist=True, verbose=False)
@@ -62,7 +78,6 @@ class Detector:
                 fd.ball = det
             elif name == "hoop":
                 fd.hoops.append(det)
-            else:
-                print(name)
+            # "referee" detected but excluded from all lists
 
         return fd
