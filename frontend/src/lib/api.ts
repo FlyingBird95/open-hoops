@@ -173,9 +173,14 @@ export const gamesApi = {
     const { data } = await client.get(`/games/${uid}`);
     return extractOneWithRels(data) as unknown as Game;
   },
-  upload: async (formData: FormData): Promise<Game> => {
+  upload: async (formData: FormData, onProgress?: (pct: number) => void): Promise<Game> => {
     const { data } = await client.post("/games", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      },
     });
     return extractOneWithRels(data) as unknown as Game;
   },

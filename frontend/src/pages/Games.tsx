@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowDown, ArrowUp, ArrowUpDown, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DropZone } from "@/components/drop-zone";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 
 type SortKey = "name" | "date" | "file_count" | "status";
 type SortDir = "asc" | "desc";
@@ -30,6 +33,7 @@ export default function Games() {
   const [homeColor, setHomeColor] = useState("");
   const [awayColor, setAwayColor] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -78,7 +82,8 @@ export default function Games() {
       formData.append("own_team_color", homeColor || myTeam!.home_color);
       formData.append("opponent_team_color", awayColor || opponentTeam!.home_color);
       files.forEach((f) => formData.append("files", f));
-      return gamesApi.upload(formData);
+      setUploadProgress(0);
+      return gamesApi.upload(formData, (pct) => setUploadProgress(pct));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
@@ -88,9 +93,11 @@ export default function Games() {
       setHomeColor("");
       setAwayColor("");
       setFiles([]);
+      setUploadProgress(null);
       toast("Game uploaded — analysis started");
     },
     onError: (err: Error) => {
+      setUploadProgress(null);
       toast.error(`Upload failed — ${err.message}`);
     },
   });
@@ -102,86 +109,101 @@ export default function Games() {
           <CardTitle>Upload Game</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input placeholder="Game name" value={name} onChange={(e) => setName(e.target.value)} />
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">My Team</label>
-              <p className="font-medium">{myTeam?.name || "No team set"}</p>
-              {myTeam && (
-                <div className="flex gap-2 items-center">
-                  <label className="text-xs text-muted-foreground">Jersey color:</label>
-                  <button
-                    type="button"
-                    className={`w-6 h-6 rounded border-2 ${(!homeColor || homeColor === myTeam.home_color) ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: myTeam.home_color }}
-                    onClick={() => setHomeColor(myTeam.home_color)}
-                    title="Home"
-                  />
-                  <button
-                    type="button"
-                    className={`w-6 h-6 rounded border-2 ${homeColor === myTeam.away_color ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: myTeam.away_color }}
-                    onClick={() => setHomeColor(myTeam.away_color)}
-                    title="Away"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Opponent</label>
-              <select
-                className="w-full border rounded px-3 py-2"
-                value={awayUid}
-                onChange={(e) => {
-                  setAwayUid(e.target.value);
-                  setAwayColor("");
-                }}
-              >
-                <option value="">Select opponent...</option>
-                {opponents?.map((t: Team) => (
-                  <option key={t.uid} value={t.uid}>{t.name}</option>
-                ))}
-              </select>
-              {opponentTeam && (
-                <div className="flex gap-2 items-center">
-                  <label className="text-xs text-muted-foreground">Jersey color:</label>
-                  <button
-                    type="button"
-                    className={`w-6 h-6 rounded border-2 ${(!awayColor || awayColor === opponentTeam.home_color) ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: opponentTeam.home_color }}
-                    onClick={() => setAwayColor(opponentTeam.home_color)}
-                    title="Home"
-                  />
-                  <button
-                    type="button"
-                    className={`w-6 h-6 rounded border-2 ${awayColor === opponentTeam.away_color ? "border-foreground" : "border-transparent"}`}
-                    style={{ backgroundColor: opponentTeam.away_color }}
-                    onClick={() => setAwayColor(opponentTeam.away_color)}
-                    title="Away"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Section 1: Game Info */}
           <div className="space-y-2">
-            <Input
-              type="file"
-              accept="video/*"
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files || []))}
-            />
-            {files.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {files.length} file{files.length > 1 ? "s" : ""} selected
-                ({files.map(f => f.name).join(", ")})
-              </p>
-            )}
+            <p className="text-sm font-medium text-muted-foreground">Game Info</p>
+            <div className="grid grid-cols-2 gap-4">
+              <Input placeholder="Game name" value={name} onChange={(e) => setName(e.target.value)} disabled={upload.isPending} />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={upload.isPending} />
+            </div>
           </div>
-          <Button onClick={() => upload.mutate()} disabled={!name || !date || !awayUid || files.length === 0}>
-            Upload & Analyze
+
+          <Separator />
+
+          {/* Section 2: Teams */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Teams</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">My Team</label>
+                <p className="font-medium">{myTeam?.name || "No team set"}</p>
+                {myTeam && (
+                  <div className="flex gap-2 items-center">
+                    <label className="text-xs text-muted-foreground">Jersey color:</label>
+                    <button
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 ${(!homeColor || homeColor === myTeam.home_color) ? "border-foreground" : "border-transparent"}`}
+                      style={{ backgroundColor: myTeam.home_color }}
+                      onClick={() => setHomeColor(myTeam.home_color)}
+                      title="Home"
+                      disabled={upload.isPending}
+                    />
+                    <button
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 ${homeColor === myTeam.away_color ? "border-foreground" : "border-transparent"}`}
+                      style={{ backgroundColor: myTeam.away_color }}
+                      onClick={() => setHomeColor(myTeam.away_color)}
+                      title="Away"
+                      disabled={upload.isPending}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Opponent</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={awayUid}
+                  onChange={(e) => {
+                    setAwayUid(e.target.value);
+                    setAwayColor("");
+                  }}
+                  disabled={upload.isPending}
+                >
+                  <option value="">Select opponent...</option>
+                  {opponents?.map((t: Team) => (
+                    <option key={t.uid} value={t.uid}>{t.name}</option>
+                  ))}
+                </select>
+                {opponentTeam && (
+                  <div className="flex gap-2 items-center">
+                    <label className="text-xs text-muted-foreground">Jersey color:</label>
+                    <button
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 ${(!awayColor || awayColor === opponentTeam.home_color) ? "border-foreground" : "border-transparent"}`}
+                      style={{ backgroundColor: opponentTeam.home_color }}
+                      onClick={() => setAwayColor(opponentTeam.home_color)}
+                      title="Home"
+                      disabled={upload.isPending}
+                    />
+                    <button
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 ${awayColor === opponentTeam.away_color ? "border-foreground" : "border-transparent"}`}
+                      style={{ backgroundColor: opponentTeam.away_color }}
+                      onClick={() => setAwayColor(opponentTeam.away_color)}
+                      title="Away"
+                      disabled={upload.isPending}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section 3: Files */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Video Files</p>
+            <DropZone files={files} onChange={setFiles} disabled={upload.isPending} />
+          </div>
+
+          {uploadProgress !== null && (
+            <Progress value={uploadProgress} className="h-2" />
+          )}
+
+          <Button onClick={() => upload.mutate()} disabled={!name || !date || !awayUid || files.length === 0 || upload.isPending}>
+            {upload.isPending ? "Uploading..." : "Upload & Analyze"}
           </Button>
         </CardContent>
       </Card>
