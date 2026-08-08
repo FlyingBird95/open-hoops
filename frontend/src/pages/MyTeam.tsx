@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { UserPlus } from "lucide-react";
 
 function CreateTeamForm() {
   const queryClient = useQueryClient();
@@ -86,7 +88,14 @@ export default function MyTeam() {
     },
   });
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <Card><CardContent className="pt-6"><Skeleton className="h-6 w-40 mb-4" /><Skeleton className="h-8 w-full" /></CardContent></Card>
+        <Card><CardContent className="pt-6 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
+      </div>
+    );
+  }
   if (!team) return <CreateTeamForm />;
 
   return (
@@ -118,6 +127,12 @@ export default function MyTeam() {
           <CardTitle>Roster</CardTitle>
         </CardHeader>
         <CardContent>
+          {players && players.length === 0 && (
+            <div className="flex flex-col items-center py-8 text-center">
+              <UserPlus className="h-10 w-10 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No players yet — add your roster below</p>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>

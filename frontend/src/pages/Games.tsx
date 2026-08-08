@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Upload } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SortKey = "name" | "date" | "file_count" | "status";
 type SortDir = "asc" | "desc";
@@ -190,30 +191,39 @@ export default function Games() {
           <CardTitle>Games</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>Name<SortIcon column="name" /></TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("date")}>Date<SortIcon column="date" /></TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("file_count")}>Files<SortIcon column="file_count" /></TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>Status<SortIcon column="status" /></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedGames.map((v: Game) => (
-                <TableRow key={v.uid}>
-                  <TableCell>
-                    <Link to={`/games/${v.uid}`} className="text-blue-600 underline">{v.name}</Link>
-                  </TableCell>
-                  <TableCell>{v.date}</TableCell>
-                  <TableCell>{v.file_count}</TableCell>
-                  <TableCell>
-                    <Badge className={STATUS_COLORS[v.status]}>{v.status}</Badge>
-                  </TableCell>
+          {!games ? (
+            <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : sortedGames.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <Upload className="h-10 w-10 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No games yet — upload one above</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>Name<SortIcon column="name" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("date")}>Date<SortIcon column="date" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("file_count")}>Files<SortIcon column="file_count" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>Status<SortIcon column="status" /></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sortedGames.map((v: Game) => (
+                  <TableRow key={v.uid}>
+                    <TableCell>
+                      <Link to={`/games/${v.uid}`} className="text-blue-600 underline">{v.name}</Link>
+                    </TableCell>
+                    <TableCell>{v.date}</TableCell>
+                    <TableCell>{v.file_count}</TableCell>
+                    <TableCell>
+                      <Badge className={STATUS_COLORS[v.status]}>{v.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

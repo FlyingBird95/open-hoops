@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ShieldPlus } from "lucide-react";
 
 function OpponentRoster({ team }: { team: Team }) {
   const queryClient = useQueryClient();
@@ -76,7 +78,7 @@ export default function Opponents() {
   const [awayColor, setAwayColor] = useState("#ffffff");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const { data: teams } = useQuery({
+  const { data: teams, isLoading } = useQuery({
     queryKey: ["teams", "opponents"],
     queryFn: () => teamsApi.list(false),
   });
@@ -97,6 +99,15 @@ export default function Opponents() {
       toast("Opponent removed");
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <Card><CardContent className="pt-6"><Skeleton className="h-10 w-full" /></CardContent></Card>
+        <Card><CardContent className="pt-6 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded" />)}</CardContent></Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -123,6 +134,12 @@ export default function Opponents() {
           <CardTitle>Opponents</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
+          {teams && teams.length === 0 && (
+            <div className="flex flex-col items-center py-8 text-center">
+              <ShieldPlus className="h-10 w-10 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No opponents added yet</p>
+            </div>
+          )}
           {teams?.map((t: Team) => (
             <div key={t.uid} className="border rounded p-3">
               <div className="flex items-center justify-between">

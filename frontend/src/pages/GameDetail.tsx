@@ -6,6 +6,7 @@ import type { GameStatsResponse, GameEventData, GameFileData } from "../lib/api"
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function GameDetail() {
   const { uid } = useParams<{ uid: string }>();
@@ -42,7 +43,19 @@ export default function GameDetail() {
 
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
 
-  if (!game) return <p>Loading...</p>;
+  if (!game) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-5 w-48" />
+        <div className="grid grid-cols-2 gap-4">
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
 
   if (game.status !== "done") {
     return (
