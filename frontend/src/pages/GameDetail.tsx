@@ -47,7 +47,7 @@ export default function GameDetail() {
 
   if (!game) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-5 w-48" />
         <div className="grid grid-cols-2 gap-4">
@@ -71,7 +71,7 @@ export default function GameDetail() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold">{game.name}</h1>
       <p className="text-muted-foreground">
         Duration: {(game.duration_seconds / 60).toFixed(1)} min | FPS: {game.fps.toFixed(0)}

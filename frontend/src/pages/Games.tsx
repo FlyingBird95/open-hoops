@@ -103,7 +103,7 @@ export default function Games() {
   });
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-4xl">
       <Card>
         <CardHeader>
           <CardTitle>Upload Game</CardTitle>

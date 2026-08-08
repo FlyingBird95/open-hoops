@@ -102,7 +102,7 @@ export default function Opponents() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-2xl">
+      <div className="space-y-6">
         <Card><CardContent className="pt-6"><Skeleton className="h-10 w-full" /></CardContent></Card>
         <Card><CardContent className="pt-6 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded" />)}</CardContent></Card>
       </div>
@@ -110,7 +110,7 @@ export default function Opponents() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Add Opponent</CardTitle>
