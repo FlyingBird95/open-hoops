@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { gamesApi, teamsApi } from "../lib/api";
-import type { Team, GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
+import type { GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
