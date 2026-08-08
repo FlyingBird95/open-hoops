@@ -2,11 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { gamesApi, teamsApi } from "../lib/api";
-import type { GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
+import type { Game, GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScoreCard } from "@/components/viz/score-card";
+import { StatBar } from "@/components/viz/stat-bar";
+import { DonutChart } from "@/components/viz/donut-chart";
 
 export default function GameDetail() {
   const { uid } = useParams<{ uid: string }>();
@@ -22,7 +25,6 @@ export default function GameDetail() {
 
   const allTeams = [...(ownTeams || []), ...(opponents || [])];
   const teamNameByUid = Object.fromEntries(allTeams.map((t) => [t.uid, t.name]));
-  const ownTeamUids = new Set((ownTeams || []).map((t) => t.uid));
 
   const { data: stats } = useQuery({
     queryKey: ["game-stats", uid],
@@ -76,83 +78,96 @@ export default function GameDetail() {
       </p>
 
       {gameFiles && gameFiles.length > 0 && <VideoPlayer files={gameFiles} seekTarget={seekTarget} onSeeked={() => setSeekTarget(null)} />}
-      {stats && <TeamStatsCards stats={stats} game={game} teamNameByUid={teamNameByUid} ownTeamUids={ownTeamUids} />}
-      {stats && <PlayerStatsTable stats={stats} />}
-      {events && <EventTimeline events={events} teamNameByUid={teamNameByUid} playerNameByUid={stats ? Object.fromEntries(stats.player_stats.filter(p => p.player_uid).map(p => [p.player_uid!, `#${p.jersey_number}`])) : {}} onEventClick={(ts) => setSeekTarget(ts)} />}
+      {stats && (() => {
+        const ownStats = stats.team_stats.find(ts => ts.team_uid === game.own_team_uid);
+        const oppStats = stats.team_stats.find(ts => ts.team_uid !== game.own_team_uid);
+        const ownName = teamNameByUid[game.own_team_uid] || "My Team";
+        const oppName = teamNameByUid[stats.team_stats.find(ts => ts.team_uid !== game.own_team_uid)?.team_uid || ""] || "Opponent";
+        return (
+          <ScoreCard
+            homeTeam={ownName}
+            awayTeam={oppName}
+            homeScore={ownStats?.score ?? 0}
+            awayScore={oppStats?.score ?? 0}
+            homeColor={game.own_team_color}
+            awayColor={game.opponent_team_color}
+            homePossession={ownStats?.possession_pct ?? 0}
+            awayPossession={oppStats?.possession_pct ?? 0}
+          />
+        );
+      })()}
+      {stats && <PlayerStatsTable stats={stats} game={game} teamNameByUid={teamNameByUid} />}
+      {events && <EventTimeline events={events} game={game} teamNameByUid={teamNameByUid} playerNameByUid={stats ? Object.fromEntries(stats.player_stats.filter(p => p.player_uid).map(p => [p.player_uid!, `#${p.jersey_number}`])) : {}} onEventClick={(ts) => setSeekTarget(ts)} />}
     </div>
   );
 }
 
-function TeamStatsCards({ stats, game, teamNameByUid, ownTeamUids }: { stats: GameStatsResponse; game: { own_team_uid: string; own_team_color: string; opponent_team_color: string }; teamNameByUid: Record<string, string>; ownTeamUids: Set<string> }) {
-  const sorted = [...stats.team_stats].sort((a, b) => {
-    const aOwn = ownTeamUids.has(a.team_uid) ? 0 : 1;
-    const bOwn = ownTeamUids.has(b.team_uid) ? 0 : 1;
-    return aOwn - bOwn;
-  });
+function PlayerStatsTable({ stats, game, teamNameByUid }: { stats: GameStatsResponse; game: Game; teamNameByUid: Record<string, string> }) {
+  const teams = [...new Set(stats.player_stats.map(p => p.team_uid))];
+  const maxDistance = Math.max(...stats.player_stats.map(p => p.distance_covered_m), 1);
+
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {sorted.map((ts) => {
-        const isOwn = ts.team_uid === game.own_team_uid;
+    <div className="space-y-4">
+      {teams.map(teamUid => {
+        const players = stats.player_stats.filter(p => p.team_uid === teamUid);
+        const isOwn = teamUid === game.own_team_uid;
         const color = isOwn ? game.own_team_color : game.opponent_team_color;
-        const teamName = teamNameByUid[ts.team_uid] || (isOwn ? "My Team" : "Opponent");
+        const teamName = teamNameByUid[teamUid] || (isOwn ? "My Team" : "Opponent");
+        const totalShots = players.reduce((s, p) => s + p.shot_attempts, 0);
+        const totalMakes = players.reduce((s, p) => s + p.shot_makes, 0);
+
         return (
-          <Card key={ts.uid}>
+          <Card key={teamUid}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded" style={{ backgroundColor: color }} />
+              <CardTitle className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
                 {teamName}
+                <DonutChart makes={totalMakes} misses={totalShots - totalMakes} color={color} size={36} />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{ts.score}</p>
-              <p className="text-sm text-muted-foreground">
-                Possession: {(ts.possession_pct * 100).toFixed(0)}%
-              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Shots</TableHead>
+                    <TableHead>Makes</TableHead>
+                    <TableHead>FG%</TableHead>
+                    <TableHead>Passes</TableHead>
+                    <TableHead>Distance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {players.map((p) => {
+                    const fgPct = p.shot_attempts > 0 ? p.shot_makes / p.shot_attempts : 0;
+                    return (
+                      <TableRow key={p.uid}>
+                        <TableCell className="font-medium">{p.jersey_number ?? "?"}</TableCell>
+                        <TableCell>{p.shot_attempts}</TableCell>
+                        <TableCell>{p.shot_makes}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <StatBar value={fgPct} max={1} color={color} className="w-16" />
+                            <span className="text-xs">{p.shot_attempts > 0 ? `${Math.round(fgPct * 100)}%` : "—"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{p.passes_made}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <StatBar value={p.distance_covered_m} max={maxDistance} color={color} className="w-12" />
+                            <span className="text-xs">{p.distance_covered_m.toFixed(0)}m</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         );
       })}
     </div>
-  );
-}
-
-function PlayerStatsTable({ stats }: { stats: GameStatsResponse }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Player Stats</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>#</TableHead>
-              <TableHead>Shots</TableHead>
-              <TableHead>Makes</TableHead>
-              <TableHead>FG%</TableHead>
-              <TableHead>Passes</TableHead>
-              <TableHead>Distance (m)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {stats.player_stats.map((p) => (
-              <TableRow key={p.uid}>
-                <TableCell>{p.jersey_number ?? "?"}</TableCell>
-                <TableCell>{p.shot_attempts}</TableCell>
-                <TableCell>{p.shot_makes}</TableCell>
-                <TableCell>
-                  {p.shot_attempts > 0
-                    ? ((p.shot_makes / p.shot_attempts) * 100).toFixed(0) + "%"
-                    : "—"}
-                </TableCell>
-                <TableCell>{p.passes_made}</TableCell>
-                <TableCell>{p.distance_covered_m.toFixed(0)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -231,7 +246,7 @@ function VideoPlayer({ files, seekTarget, onSeeked }: { files: GameFileData[]; s
   );
 }
 
-function EventTimeline({ events, teamNameByUid, playerNameByUid, onEventClick }: { events: GameEventData[]; teamNameByUid: Record<string, string>; playerNameByUid: Record<string, string>; onEventClick: (timestampSec: number) => void }) {
+function EventTimeline({ events, game, teamNameByUid, playerNameByUid, onEventClick }: { events: GameEventData[]; game: Game; teamNameByUid: Record<string, string>; playerNameByUid: Record<string, string>; onEventClick: (timestampSec: number) => void }) {
   return (
     <Card>
       <CardHeader>
@@ -242,7 +257,8 @@ function EventTimeline({ events, teamNameByUid, playerNameByUid, onEventClick }:
           {events.map((e) => (
             <div
               key={e.uid}
-              className="flex gap-4 text-sm py-1 border-b cursor-pointer hover:bg-muted/50 rounded px-1"
+              className="flex gap-4 text-sm py-1 border-b cursor-pointer hover:bg-muted/50 rounded px-1 border-l-2"
+              style={{ borderLeftColor: e.team_uid === game.own_team_uid ? game.own_team_color : game.opponent_team_color }}
               onClick={() => onEventClick(e.timestamp_sec)}
             >
               <span className="text-muted-foreground w-16">{e.timestamp_sec.toFixed(1)}s</span>
