@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { teamsApi, gamesApi } from "../lib/api";
 import type { Team, Game } from "../lib/api";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,10 @@ export default function Games() {
       setHomeColor("");
       setAwayColor("");
       setFiles([]);
+      toast("Game uploaded — analysis started");
+    },
+    onError: (err: Error) => {
+      toast.error(`Upload failed — ${err.message}`);
     },
   });
 

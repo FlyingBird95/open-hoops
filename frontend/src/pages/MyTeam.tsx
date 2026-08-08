@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { teamsApi, playersApi } from "../lib/api";
 import type { Team, Player } from "../lib/api";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,10 @@ function CreateTeamForm() {
 
   const createTeam = useMutation({
     mutationFn: () => teamsApi.create({ name, is_own: true, home_color: homeColor, away_color: awayColor }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      toast("Team created");
+    },
   });
 
   return (
@@ -58,13 +62,17 @@ export default function MyTeam() {
 
   const updateTeam = useMutation({
     mutationFn: (data: Partial<Team>) => teamsApi.update(team!.uid, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      toast("Colors updated");
+    },
   });
 
   const addPlayer = useMutation({
     mutationFn: () => playersApi.create({ team_uid: team!.uid, jersey_number: parseInt(newNumber), name: newName || undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast(`Player #${newNumber} added`);
       setNewNumber("");
       setNewName("");
     },
@@ -72,7 +80,10 @@ export default function MyTeam() {
 
   const deletePlayer = useMutation({
     mutationFn: (uid: string) => playersApi.delete(uid),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["players"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast("Player removed");
+    },
   });
 
   if (isLoading) return <p>Loading...</p>;

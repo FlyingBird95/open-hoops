@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { teamsApi, playersApi } from "../lib/api";
 import type { Team, Player } from "../lib/api";
 import { Button } from "@/components/ui/button";
@@ -84,13 +85,17 @@ export default function Opponents() {
     mutationFn: () => teamsApi.create({ name, is_own: false, home_color: homeColor, away_color: awayColor }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
+      toast("Opponent added");
       setName("");
     },
   });
 
   const deleteTeam = useMutation({
     mutationFn: (uid: string) => teamsApi.delete(uid),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      toast("Opponent removed");
+    },
   });
 
   return (
