@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { gamesApi, teamsApi } from "../lib/api";
 import type { Game, GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Archive, ArchiveRestore } from "lucide-react";
 import { ScoreCard } from "@/components/viz/score-card";
 import { StatBar } from "@/components/viz/stat-bar";
 import { DonutChart } from "@/components/viz/donut-chart";
@@ -45,6 +48,17 @@ export default function GameDetail() {
 
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
 
+  const queryClient = useQueryClient();
+
+  const archiveMutation = useMutation({
+    mutationFn: (archived: boolean) => gamesApi.update(uid!, { is_archived: archived }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ["game", uid] });
+      queryClient.invalidateQueries({ queryKey: ["games"] });
+      toast(updated.is_archived ? "Game archived" : "Game restored");
+    },
+  });
+
   if (!game) {
     return (
       <div className="space-y-6">
@@ -72,7 +86,23 @@ export default function GameDetail() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{game.name}</h1>
+      <div className="flex items-center gap-4">
+        <h1 className="text-2xl font-bold">{game.name}</h1>
+        {game.status === "done" && (
+          <Button
+            variant={game.is_archived ? "outline" : "ghost"}
+            size="sm"
+            onClick={() => archiveMutation.mutate(!game.is_archived)}
+            disabled={archiveMutation.isPending}
+          >
+            {game.is_archived ? (
+              <><ArchiveRestore className="h-4 w-4 mr-1" /> Unarchive</>
+            ) : (
+              <><Archive className="h-4 w-4 mr-1" /> Archive</>
+            )}
+          </Button>
+        )}
+      </div>
       <p className="text-muted-foreground">
         Duration: {(game.duration_seconds / 60).toFixed(1)} min | FPS: {game.fps.toFixed(0)}
       </p>

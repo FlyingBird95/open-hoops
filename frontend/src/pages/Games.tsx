@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDown, ArrowUp, ArrowUpDown, Upload } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, ArrowUpDown, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropZone } from "@/components/drop-zone";
 import { Progress } from "@/components/ui/progress";
@@ -36,10 +36,15 @@ export default function Games() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: ownTeams } = useQuery({ queryKey: ["teams", "own"], queryFn: () => teamsApi.list(true) });
   const { data: opponents } = useQuery({ queryKey: ["teams", "opponents"], queryFn: () => teamsApi.list(false) });
-  const { data: games } = useQuery({ queryKey: ["games"], queryFn: gamesApi.list, refetchInterval: 5000 });
+  const { data: games } = useQuery({
+    queryKey: ["games", { archived: showArchived }],
+    queryFn: () => gamesApi.list(showArchived || undefined),
+    refetchInterval: showArchived ? false : 5000,
+  });
 
   const sortedGames = useMemo(() => {
     if (!games) return [];
@@ -208,6 +213,17 @@ export default function Games() {
         </CardContent>
       </Card>
 
+      <div className="flex items-center gap-2">
+        <Button
+          variant={showArchived ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowArchived(!showArchived)}
+        >
+          <Archive className="h-4 w-4 mr-1" />
+          {showArchived ? "Showing archived" : "Show archived"}
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Games</CardTitle>
@@ -240,6 +256,7 @@ export default function Games() {
                     <TableCell>{v.file_count}</TableCell>
                     <TableCell>
                       <Badge className={STATUS_COLORS[v.status]}>{v.status}</Badge>
+                      {v.is_archived && <Badge variant="outline" className="ml-1">Archived</Badge>}
                     </TableCell>
                   </TableRow>
                 ))}

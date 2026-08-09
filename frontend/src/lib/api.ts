@@ -76,6 +76,7 @@ export interface Game {
   duration_seconds: number;
   fps: number;
   file_count: number;
+  is_archived: boolean;
 }
 
 export interface GameTeamStatsData {
@@ -165,9 +166,17 @@ export const playersApi = {
 };
 
 export const gamesApi = {
-  list: async (): Promise<Game[]> => {
-    const { data } = await client.get("/games");
+  list: async (archived?: boolean): Promise<Game[]> => {
+    const params: Record<string, string> = {};
+    if (archived !== undefined) params.archived = String(archived);
+    const { data } = await client.get("/games", { params });
     return extractManyWithRels(data) as unknown as Game[];
+  },
+  update: async (uid: string, attrs: Partial<Pick<Game, "is_archived">>): Promise<Game> => {
+    const { data } = await client.patch(`/games/${uid}`, {
+      data: { type: "games", uid, attributes: attrs },
+    });
+    return extractOneWithRels(data) as unknown as Game;
   },
   get: async (uid: string): Promise<Game> => {
     const { data } = await client.get(`/games/${uid}`);

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export default function Dashboard() {
   const { data: games, isLoading } = useQuery({
     queryKey: ["games"],
-    queryFn: gamesApi.list,
+    queryFn: () => gamesApi.list(),
     refetchInterval: 5000,
   });
   const { data: opponents } = useQuery({
@@ -93,7 +93,7 @@ export default function Dashboard() {
 
       <section>
         <h2 className="text-lg font-semibold mb-3">Recent Completions</h2>
-        <div className="space-y-2">
+        <div className="space-y-3 grid gap">
           {done.slice(0, 5).map((g: Game) => (
             <Link key={g.uid} to={`/games/${g.uid}`}>
               <Card className="hover:ring-2 hover:ring-primary/20 transition-shadow">
