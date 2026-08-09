@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -7,8 +7,9 @@ from app.models import Game
 from .serialize import serialize_game
 
 
-def list_games(db: Session = Depends(get_db)):
-    games = db.query(Game).order_by(Game.date.desc()).all()
+def list_games(archived: bool = Query(False), db: Session = Depends(get_db)):
+    query = db.query(Game).filter(Game.is_archived == archived).order_by(Game.date.desc())
+    games = query.all()
     return document(
         data=[serialize_game(g) for g in games],
         meta={"count": len(games)},

@@ -17,6 +17,7 @@ def serialize_game(game: Game) -> dict:
             "fps": game.fps,
             "status": game.status.value,
             "file_count": len(game.files),
+            "is_archived": game.is_archived,
         },
         relationships={
             "own_team": relationship_linkage("teams", game.own_team.uid),

@@ -61,6 +61,7 @@ class Game(Base):
     duration_seconds: Mapped[float] = mapped_column(Float, default=0.0)
     fps: Mapped[float] = mapped_column(Float, default=0.0)
     status: Mapped[GameStatus] = mapped_column(Enum(GameStatus), default=GameStatus.pending)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
 
     own_team: Mapped["Team"] = relationship(foreign_keys=[own_team_id])
     opponent_team: Mapped["Team"] = relationship(foreign_keys=[opponent_team_id])
