@@ -2,30 +2,30 @@ import axios from "axios";
 
 const client = axios.create({ baseURL: "/api" });
 
-interface ResourceObject<T> {
+export interface ResourceObject<T> {
   type: string;
   uid: string;
   attributes: T;
   relationships?: Record<string, { data: { type: string; uid: string } | null }>;
 }
 
-interface JsonApiDocument<T> {
+export interface JsonApiDocument<T> {
   data: ResourceObject<T> | ResourceObject<T>[];
   meta?: { count?: number };
   jsonapi: { version: string };
 }
 
-function extractOne<T>(doc: JsonApiDocument<T>): T & { uid: string } {
+export function extractOne<T>(doc: JsonApiDocument<T>): T & { uid: string } {
   const resource = doc.data as ResourceObject<T>;
   return { uid: resource.uid, ...resource.attributes };
 }
 
-function extractMany<T>(doc: JsonApiDocument<T>): (T & { uid: string })[] {
+export function extractMany<T>(doc: JsonApiDocument<T>): (T & { uid: string })[] {
   const resources = doc.data as ResourceObject<T>[];
   return resources.map((r) => ({ uid: r.uid, ...r.attributes }));
 }
 
-function extractOneWithRels<T>(doc: JsonApiDocument<T>): T & { uid: string } & Record<string, unknown> {
+export function extractOneWithRels<T>(doc: JsonApiDocument<T>): T & { uid: string } & Record<string, unknown> {
   const resource = doc.data as ResourceObject<T>;
   const rels: Record<string, unknown> = {};
   if (resource.relationships) {
@@ -36,7 +36,7 @@ function extractOneWithRels<T>(doc: JsonApiDocument<T>): T & { uid: string } & R
   return { uid: resource.uid, ...resource.attributes, ...rels };
 }
 
-function extractManyWithRels<T>(doc: JsonApiDocument<T>): (T & { uid: string } & Record<string, unknown>)[] {
+export function extractManyWithRels<T>(doc: JsonApiDocument<T>): (T & { uid: string } & Record<string, unknown>)[] {
   const resources = doc.data as ResourceObject<T>[];
   return resources.map((resource) => {
     const rels: Record<string, unknown> = {};
