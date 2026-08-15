@@ -4,11 +4,12 @@ Basketball video analytics platform. YOLO-based detection + stats extraction fro
 
 ## Git Workflow
 
-- **Never commit directly to `main`.** All changes go through feature branches + pull requests.
+- **Never push directly to `main`.** All changes go through feature branches + pull requests. No exceptions.
+- **Never use `git push origin main`** — always create a PR and merge via GitHub.
 - Branch naming: `feat/<short-description>`, `fix/<short-description>`, `chore/<short-description>`.
 - GitHub branch protection enforces this — direct pushes to `main` are blocked.
 - PRs require at least one approving review before merge (admin can bypass).
-- CI must pass (Python tests + lint, Frontend type check + lint + build) before merge.
+- CI must pass (Python tests + lint, Frontend type check + lint + test + build) before merge.
 - Always use a worktree for feature work to keep `main` clean locally.
 
 ## Project Structure
@@ -63,9 +64,11 @@ frontend/         — React + TypeScript + Vite dashboard
 
 ### Frontend
 
-- React 18, TypeScript, Vite, React Router, TanStack Query.
+- React 19, TypeScript 6, Vite 8, React Router, TanStack Query.
 - shadcn/ui (Tailwind-based components).
 - Pages: My Team, Opponents, Games (upload + list + detail).
+- Testing: Vitest + React Testing Library. Run with `npm test` from `frontend/`.
+- API responses use JSON:API format. Frontend helpers `extractOne`, `extractMany`, `extractOneWithRels`, `extractManyWithRels` in `src/lib/api.ts` unwrap responses into flat objects with uid.
 
 ### Player API
 
