@@ -1,31 +1,34 @@
 from __future__ import annotations
 import math
-from datetime import timedelta
 
 import cv2
 import numpy as np
 
-from open_hoops.models import GameStats, TeamStats, PlayerStats, Point, Roster, Video
-from open_hoops.detector import Detector
-from open_hoops.tracker import Tracker, compute_homography
-from open_hoops.identity.team import TeamClassifier
-from open_hoops.identity.player import PlayerIdentifier
+from open_hoops.models import (
+    GameStats,
+    TeamStats,
+    PlayerStats,
+    Point,
+    Roster,
+    SubstitutionEvent,
+    Video,
+)
+from open_hoops.identity.team import assign_teams_from_profiles
+from open_hoops.identity.player import finalize_jerseys
 from open_hoops.stats.possession import PossessionTracker
 from open_hoops.stats.shots import ShotDetector
 from open_hoops.stats.movement import MovementTracker
 from open_hoops.stats.passes import PassDetector
 from open_hoops.stats.score import ScoreTracker
+from open_hoops.stats.ball_interpolator import interpolate_ball
+from open_hoops.stats.substitutions import SubstitutionTracker
 from open_hoops.overlay import Overlay
 from open_hoops.pass_one import run_pass_one
-from open_hoops.identity.team import assign_teams_from_profiles
-from open_hoops.identity.player import finalize_jerseys
-from open_hoops.stats.ball_interpolator import interpolate_ball
 
 _DEFAULT_SRC = np.array([[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32)
 _DEFAULT_DST = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)
 
 _DEFAULT_FPS = 30.0
-_BALL_MISSING_WARN_TIME = timedelta(seconds=5)
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -48,8 +51,7 @@ class OpenHoop:
         self._roster = roster
 
     def extract_stats(self) -> GameStats:
-        """Run two-pass detection/tracking/stats pipeline. Returns GameStats."""
-        # === Pass 1: Collect track profiles ===
+        """Single-pass detection/tracking/stats pipeline. Returns GameStats."""
         valid_numbers: set[int] | None = None
         if self._roster:
             valid_numbers = set(self._roster.home.players + self._roster.away.players)
@@ -59,86 +61,69 @@ class OpenHoop:
             model_path=self._model_path,
             src_pts=self._src,
             dst_pts=self._dst,
-            roster=self._roster,
             valid_numbers=valid_numbers,
         )
 
-        # === Between passes: Lock assignments ===
+        # Lock team/jersey assignments from collected profiles
         assign_teams_from_profiles(pass_one.tracks, self._roster)
         finalize_jerseys(pass_one.tracks)
 
-        # Build lookup tables
         team_assignments = {tid: p.team for tid, p in pass_one.tracks.items()}
         jersey_assignments = {tid: p.jersey for tid, p in pass_one.tracks.items()}
 
-        # Interpolate ball
+        # Apply interpolated ball positions to stored frames
         ball_positions = interpolate_ball(pass_one.ball_positions, pass_one.fps)
+        for i, pos in enumerate(ball_positions):
+            if pos is not None:
+                pass_one.frames[i].ball_pos = pos
 
-        # === Pass 2: Stats extraction with fixed assignments ===
-        cap = cv2.VideoCapture(self._video.path)
-        if not cap.isOpened():
-            cap.release()
-            raise ValueError(f"Cannot open video: {self._video.path}")
-
-        fps = cap.get(cv2.CAP_PROP_FPS) or _DEFAULT_FPS
-        H = compute_homography(self._src, self._dst)
-        detector = Detector(self._model_path)
-        tracker = Tracker(H)
+        # Replay frames through stats trackers
+        fps = pass_one.fps
+        subs = SubstitutionTracker()
         possession = PossessionTracker()
         shots = ShotDetector()
         movement = MovementTracker()
         passes = PassDetector()
         score = ScoreTracker()
-
         all_events = []
-        frame_idx = 0
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        for frame_idx, tf in enumerate(pass_one.frames):
+            subs.update(tf)
 
-            fd = detector.detect(frame)
-            tf = tracker.update(fd, frame_idx)
-
-            # Override ball position with interpolated
-            if frame_idx < len(ball_positions) and ball_positions[frame_idx] is not None:
-                tf.ball_pos = ball_positions[frame_idx]
-
-            # Use fixed team assignments (no per-frame classification)
-            player_teams = team_assignments
+            # Filter to on-court players only
+            on_court_players = [p for p in tf.players if subs.is_on_court(p.track_id, frame_idx)]
+            tf.players = on_court_players
 
             possession_owner: int | None = None
             if tf.players and tf.ball_pos is not None:
                 nearest = min(tf.players, key=lambda p: _dist(p.court_pos, tf.ball_pos))
                 possession_owner = nearest.track_id
 
-            poss_events = possession.update(tf, player_teams, frame_idx, fps)
-            shot_events = shots.update(tf, player_teams, possession_owner, frame_idx, fps)
+            poss_events = possession.update(tf, team_assignments, frame_idx, fps)
+            shot_events = shots.update(tf, team_assignments, possession_owner, frame_idx, fps)
             shot_this_frame = any(e.type == "shot" for e in shot_events)
             pass_events = passes.update(
-                tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame
+                tf, team_assignments, possession_owner, frame_idx, fps, shot_this_frame
             )
             movement.update(tf)
             score.update(shot_events)
 
             all_events.extend(poss_events + shot_events + pass_events)
-            frame_idx += 1
 
-        cap.release()
-        return self._build_stats_two_pass(
+        return self._build_stats(
             fps,
-            frame_idx,
+            pass_one.frame_count,
             team_assignments,
             jersey_assignments,
             movement,
             possession,
             score,
+            subs,
             all_events,
         )
 
     def edit_overlay(self, game_stats: GameStats, output_path: str) -> Video:
-        """Render score HUD onto source video using precomputed game_stats. Writes to output_path."""
+        """Render score HUD onto source video. Writes to output_path."""
         cap = cv2.VideoCapture(self._video.path)
         if not cap.isOpened():
             cap.release()
@@ -171,7 +156,7 @@ class OpenHoop:
 
         return Video(path=output_path)
 
-    def _build_stats_two_pass(
+    def _build_stats(
         self,
         fps: float,
         total_frames: int,
@@ -180,11 +165,11 @@ class OpenHoop:
         movement: MovementTracker,
         possession: PossessionTracker,
         score: ScoreTracker,
+        subs: SubstitutionTracker,
         events: list,
     ) -> GameStats:
         pct = possession.finalize(total_frames)
 
-        # Determine team colors from roster or defaults
         team_colors: dict[str, str] = {}
         if self._roster:
             team_colors = {"team_a": self._roster.home.color, "team_b": self._roster.away.color}
@@ -204,7 +189,6 @@ class OpenHoop:
             ),
         }
 
-        # Aggregate events per player
         shot_makes: dict[int, int] = {}
         shot_attempts: dict[int, int] = {}
         passes_made: dict[int, int] = {}
@@ -223,7 +207,7 @@ class OpenHoop:
             elif e.type == "possession_change":
                 possession_frames[pid] = possession_frames.get(pid, 0) + 1
 
-        # Build player stats using fixed assignments
+        substitutions: list[SubstitutionEvent] = []
         for tid, team_id in team_assignments.items():
             if team_id is None:
                 continue
@@ -234,6 +218,7 @@ class OpenHoop:
                 team_id=team_id,
                 positions=positions,
                 distance_covered_m=movement.get_distance(tid),
+                game_time_seconds=subs.get_game_time(tid, fps),
                 shot_attempts=shot_attempts.get(tid, 0),
                 shot_makes=shot_makes.get(tid, 0),
                 passes_made=passes_made.get(tid, 0),
@@ -243,78 +228,16 @@ class OpenHoop:
             if team_id in teams:
                 teams[team_id].players.append(ps)
 
-        return GameStats(
-            video=self._video,
-            duration_seconds=total_frames / fps if fps > 0 else 0.0,
-            fps=fps,
-            teams=list(teams.values()),
-            events=events,
-        )
-
-    def _build_stats(
-        self,
-        fps: float,
-        total_frames: int,
-        player_teams: dict[int, str],
-        player_ident: PlayerIdentifier,
-        movement: MovementTracker,
-        possession: PossessionTracker,
-        score: ScoreTracker,
-        team_clf: TeamClassifier,
-        events: list,
-    ) -> GameStats:
-        pct = possession.finalize(total_frames)
-
-        teams: dict[str, TeamStats] = {
-            "team_a": TeamStats(
-                team_id="team_a",
-                color=team_clf.team_colors.get("team_a", ""),
-                score=score.scores["team_a"],
-                possession_pct=pct.get("team_a", 0.0),
-            ),
-            "team_b": TeamStats(
-                team_id="team_b",
-                color=team_clf.team_colors.get("team_b", ""),
-                score=score.scores["team_b"],
-                possession_pct=pct.get("team_b", 0.0),
-            ),
-        }
-
-        shot_makes: dict[int, int] = {}
-        shot_attempts: dict[int, int] = {}
-        passes_made: dict[int, int] = {}
-        passes_received: dict[int, int] = {}
-        possession_frames: dict[int, int] = {}
-
-        for e in events:
-            pid = e.player_id
-            if pid is None:
-                continue
-            if e.type == "make":
-                shot_makes[pid] = shot_makes.get(pid, 0) + 1
-            elif e.type == "shot":
-                shot_attempts[pid] = shot_attempts.get(pid, 0) + 1
-            elif e.type == "pass":
-                passes_made[pid] = passes_made.get(pid, 0) + 1
-            elif e.type == "possession_change":
-                possession_frames[pid] = possession_frames.get(pid, 0) + 1
-
-        for tid, team_id in player_teams.items():
-            jersey = player_ident._majority(tid)
-            positions = [Point(x=x, y=y) for x, y in movement.get_positions(tid)]
-            ps = PlayerStats(
-                player_id=jersey,
-                team_id=team_id,
-                positions=positions,
-                distance_covered_m=movement.get_distance(tid),
-                shot_attempts=shot_attempts.get(tid, 0),
-                shot_makes=shot_makes.get(tid, 0),
-                passes_made=passes_made.get(tid, 0),
-                passes_received=passes_received.get(tid, 0),
-                possession_frames=possession_frames.get(tid, 0),
-            )
-            if team_id in teams:
-                teams[team_id].players.append(ps)
+            for frame_on, frame_off in subs.get_timeline(tid):
+                substitutions.append(
+                    SubstitutionEvent(
+                        track_id=tid,
+                        team_id=team_id,
+                        jersey=jersey,
+                        frame_on=frame_on,
+                        frame_off=frame_off if frame_off < total_frames else None,
+                    )
+                )
 
         return GameStats(
             video=self._video,
@@ -322,4 +245,5 @@ class OpenHoop:
             fps=fps,
             teams=list(teams.values()),
             events=events,
+            substitutions=substitutions,
         )

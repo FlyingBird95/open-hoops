@@ -32,6 +32,7 @@ class PlayerStats(BaseModel):
     team_id: str
     positions: list[Point] = Field(default_factory=list)
     distance_covered_m: float = 0.0
+    game_time_seconds: float = 0.0
     shot_attempts: int = 0
     shot_makes: int = 0
     passes_made: int = 0
@@ -45,6 +46,14 @@ class TeamStats(BaseModel):
     score: int = 0
     players: list[PlayerStats] = Field(default_factory=list)
     possession_pct: float = 0.0
+
+
+class SubstitutionEvent(BaseModel):
+    track_id: int
+    team_id: str | None = None
+    jersey: int | None = None
+    frame_on: int
+    frame_off: int | None = None
 
 
 class GameEvent(BaseModel):
@@ -61,3 +70,4 @@ class GameStats(BaseModel):
     fps: float
     teams: list[TeamStats] = Field(default_factory=list)
     events: list[GameEvent] = Field(default_factory=list)
+    substitutions: list[SubstitutionEvent] = Field(default_factory=list)

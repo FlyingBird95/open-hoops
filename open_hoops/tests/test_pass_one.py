@@ -19,6 +19,7 @@ def test_pass_one_result_structure():
     result = PassOneResult(
         tracks={5: tp},
         ball_positions=[None, (1.0, 2.0), None],
+        frames=[],
         frame_count=3,
         fps=30.0,
     )
@@ -60,7 +61,6 @@ def test_run_pass_one_collects_tracks(mock_detector_cls, mock_cap_cls):
         model_path="yolo11x.pt",
         src_pts=np.array([[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32),
         dst_pts=np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32),
-        roster=None,
         valid_numbers=None,
     )
 

@@ -1,8 +1,4 @@
-"""Pass one: collect raw appearance data for each tracked player across all frames.
-
-No stats are computed here — this is the data-gathering phase of the two-pass
-analysis architecture.
-"""
+"""Pass one: detect and track players, collecting appearance data per track."""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -11,10 +7,9 @@ import cv2
 import numpy as np
 
 from open_hoops.detector import Detector
-from open_hoops.tracker import Tracker, compute_homography
+from open_hoops.tracker import Tracker, TrackedFrame, compute_homography
 from open_hoops.identity.team import _torso_crop, _hsv_histogram
 from open_hoops.identity.player import PlayerIdentifier
-from open_hoops.models import Roster
 
 
 @dataclass
@@ -33,6 +28,7 @@ class TrackProfile:
 class PassOneResult:
     tracks: dict[int, TrackProfile]
     ball_positions: list[tuple[float, float] | None]
+    frames: list[TrackedFrame]
     frame_count: int
     fps: float
 
@@ -47,22 +43,9 @@ def run_pass_one(
     model_path: str,
     src_pts: np.ndarray,
     dst_pts: np.ndarray,
-    roster: Roster | None,
     valid_numbers: set[int] | None,
 ) -> PassOneResult:
-    """Process a video, collecting appearance data for each tracked player.
-
-    Args:
-        video_path: Path to the input video file.
-        model_path: Path to the YOLO model weights.
-        src_pts: Source points for homography (pixel coords of court corners).
-        dst_pts: Destination points for homography (real-world court coords).
-        roster: Optional roster with team colors for team assignment.
-        valid_numbers: Optional set of valid jersey numbers to filter OCR.
-
-    Returns:
-        PassOneResult with per-track appearance data and per-frame ball positions.
-    """
+    """Process a video, collecting appearance data for each tracked player."""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         cap.release()
@@ -76,6 +59,7 @@ def run_pass_one(
 
     tracks: dict[int, TrackProfile] = {}
     ball_positions: list[tuple[float, float] | None] = []
+    frames: list[TrackedFrame] = []
     frame_idx = 0
 
     while True:
@@ -86,10 +70,9 @@ def run_pass_one(
         fd = detector.detect(frame)
         tf = tracker.update(fd, frame_idx)
 
-        # Record ball court position (already transformed by homography in Tracker)
         ball_positions.append(tf.ball_pos)
+        frames.append(tf)
 
-        # Collect per-track appearance data
         for p in fd.players:
             if p.track_id is None:
                 continue
@@ -100,14 +83,12 @@ def run_pass_one(
             profile = tracks[tid]
             profile.frame_indices.append(frame_idx)
 
-            # Collect torso crop + HSV histogram (up to _MAX_CROPS_PER_TRACK)
             if len(profile.crops) < _MAX_CROPS_PER_TRACK:
                 crop = _torso_crop(frame, p.bbox)
                 if crop.size > 0:
                     profile.crops.append(crop)
                     profile.histograms.append(_hsv_histogram(crop))
 
-            # Run OCR at _OCR_INTERVAL frame intervals
             if frame_idx % _OCR_INTERVAL == 0:
                 number = player_ident._run_ocr(frame, p.bbox)
                 if number is not None:
@@ -121,6 +102,7 @@ def run_pass_one(
     return PassOneResult(
         tracks=tracks,
         ball_positions=ball_positions,
+        frames=frames,
         frame_count=frame_idx,
         fps=fps,
     )
