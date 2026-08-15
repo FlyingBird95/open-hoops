@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import math
-from open_hoops.tracker import TrackedFrame
+
 from open_hoops.models import GameEvent
+from open_hoops.tracker import TrackedFrame
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -51,7 +53,4 @@ class PossessionTracker:
         ball_frames = sum(self._frame_counts.values())
         if ball_frames == 0:
             return {"team_a": 0.0, "team_b": 0.0}
-        return {
-            team: count / ball_frames
-            for team, count in self._frame_counts.items()
-        }
+        return {team: count / ball_frames for team, count in self._frame_counts.items()}

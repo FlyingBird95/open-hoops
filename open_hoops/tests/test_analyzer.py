@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock
+
 from open_hoops.analyzer import OpenHoop
 from open_hoops.models import GameStats, Video
 from open_hoops.tracker import TrackedFrame
@@ -100,7 +102,7 @@ def test_edit_overlay_raises_on_invalid_video():
 @patch("open_hoops.analyzer.run_pass_one")
 def test_extract_stats_uses_assignments(mock_p1):
     from open_hoops.models import Roster, TeamRoster
-    from open_hoops.pass_one import TrackProfile, PassOneResult
+    from open_hoops.pass_one import PassOneResult, TrackProfile
 
     profile = TrackProfile(track_id=1)
     profile.team = "team_a"

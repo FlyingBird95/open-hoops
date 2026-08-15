@@ -68,6 +68,7 @@ out_video = hoops.edit_overlay(stats, "game_scored.mp4")
 
 # JSON export
 import json
+
 json.dumps(stats.model_dump())
 ```
 

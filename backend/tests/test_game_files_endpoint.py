@@ -1,10 +1,11 @@
 import datetime
+
 import pytest
+from app.main import app
 from fastapi.testclient import TestClient
 
 from open_hoops.db import Base, Game, GameFile, GameStatus, Team, generate_uid
-from app.main import app
-from tests.conftest import engine, TestSession
+from tests.conftest import TestSession, engine
 
 
 @pytest.fixture(autouse=True)

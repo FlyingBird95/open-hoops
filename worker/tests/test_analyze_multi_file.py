@@ -1,7 +1,9 @@
 import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from open_hoops.db.models import Game, GameFile, GameStatus, Team, generate_uid
-from open_hoops.models import GameStats, TeamStats, Video as OHVideo
+from open_hoops.models import GameStats, TeamStats
+from open_hoops.models import Video as OHVideo
 
 
 def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):
@@ -62,11 +64,13 @@ def test_analyze_merges_multiple_files(db_session, monkeypatch):
         def close(self):
             pass
 
-    with patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)):
-        with patch("open_hoops.OpenHoop", return_value=mock_oh) as MockOH:
-            from worker.tasks import analyze_game
+    with (
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
+        patch("open_hoops.OpenHoop", return_value=mock_oh) as MockOH,
+    ):
+        from worker.tasks import analyze_game
 
-            analyze_game(game.uid)
+        analyze_game(game.uid)
 
     db_session.refresh(game)
     assert game.status == GameStatus.done

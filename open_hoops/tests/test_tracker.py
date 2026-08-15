@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
+
 from open_hoops.detector import Detection, FrameDetections
-from open_hoops.tracker import Tracker, TrackedFrame, compute_homography
+from open_hoops.tracker import TrackedFrame, Tracker, compute_homography
 
 
 @pytest.fixture
@@ -39,7 +40,7 @@ def test_tracker_no_ball(identity_homography):
 
 
 def test_compute_homography_returns_matrix():
-    src = np.array([[0,0],[100,0],[100,100],[0,100]], dtype=np.float32)
-    dst = np.array([[0,0],[28.65,0],[28.65,15.24],[0,15.24]], dtype=np.float32)
+    src = np.array([[0, 0], [100, 0], [100, 100], [0, 100]], dtype=np.float32)
+    dst = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)
     H = compute_homography(src, dst)
     assert H.shape == (3, 3)

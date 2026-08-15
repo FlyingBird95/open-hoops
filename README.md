@@ -57,6 +57,7 @@ print(f"Annotated video saved to: {out.path}")
 
 # Export everything to JSON
 import json
+
 with open("stats.json", "w") as f:
     json.dump(stats.model_dump(), f, indent=2)
 ```

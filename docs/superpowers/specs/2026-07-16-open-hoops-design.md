@@ -62,6 +62,7 @@ stats = analyze("game.mp4", output_video="out.mp4")
 
 # JSON export
 import json
+
 json.dumps(stats.model_dump())
 ```
 

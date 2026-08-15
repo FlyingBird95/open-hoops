@@ -1,12 +1,12 @@
 from fastapi import APIRouter
 
 from .collection import list_games
-from .post import upload_game
-from .get import get_game
-from .patch import update_game
-from .stats import get_game_stats, get_game_events
 from .files import list_game_files
 from .frame import get_event_frame
+from .get import get_game
+from .patch import update_game
+from .post import upload_game
+from .stats import get_game_events, get_game_stats
 
 router = APIRouter(prefix="/api/games", tags=["games"])
 router.get("")(list_games)

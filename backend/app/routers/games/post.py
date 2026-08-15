@@ -1,17 +1,17 @@
 import os
 import shutil
-from typing import List
+from datetime import date as date_type
 
 from fastapi import Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.celery_app import celery as celery_app
 from app.config import settings
 from app.database import get_db
 from app.jsonapi import document
-from app.models import Team, Game, GameFile, generate_uid
-from app.celery_app import celery as celery_app
-from datetime import date as date_type
+from app.models import Game, GameFile, Team, generate_uid
+
 from .serialize import serialize_game
 
 
@@ -22,7 +22,7 @@ def upload_game(
     opponent_team_uid: str = Form(...),
     own_team_color: str = Form("#000000"),
     opponent_team_color: str = Form("#ffffff"),
-    files: List[UploadFile] = File(...),
+    files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
     own_team = db.query(Team).filter(Team.uid == own_team_uid).first()

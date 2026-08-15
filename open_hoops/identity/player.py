@@ -1,11 +1,12 @@
 """PlayerIdentifier — jersey number OCR using EasyOCR."""
 
 from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING
 
-import numpy as np
 import easyocr
+import numpy as np
 
 if TYPE_CHECKING:
     from open_hoops.pass_one import TrackProfile
@@ -52,7 +53,7 @@ class PlayerIdentifier:
 
         try:
             results = self._get_reader().readtext(crop, detail=0, allowlist="0123456789")
-        except Exception:
+        except (RuntimeError, ValueError, OSError):
             return None
 
         for text in results:
@@ -112,7 +113,7 @@ class PlayerIdentifier:
         return self._majority(track_id)
 
 
-def finalize_jerseys(tracks: dict[int, "TrackProfile"]) -> None:
+def finalize_jerseys(tracks: dict[int, TrackProfile]) -> None:
     """Assign jersey number to each TrackProfile using area-weighted majority vote.
 
     Mutates profile.jersey in place.

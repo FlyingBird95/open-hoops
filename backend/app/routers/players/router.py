@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
 from .collection import list_players
-from .post import create_player
+from .delete import delete_player
 from .get import get_player
 from .patch import update_player
-from .delete import delete_player
+from .post import create_player
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 router.get("")(list_players)

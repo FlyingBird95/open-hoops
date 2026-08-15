@@ -1,7 +1,8 @@
 import numpy as np
+
 from open_hoops.identity.team import TeamClassifier, assign_teams_from_profiles
-from open_hoops.pass_one import TrackProfile
 from open_hoops.models import Roster, TeamRoster
+from open_hoops.pass_one import TrackProfile
 
 
 def make_frame_with_player(color_bgr, bbox=(100, 200, 150, 300)):

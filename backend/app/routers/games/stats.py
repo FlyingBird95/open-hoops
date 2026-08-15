@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.jsonapi import document
-from app.models import Game, GameTeamStats, GamePlayerStats, GameEvent
-from .serialize import serialize_team_stats, serialize_player_stats, serialize_event
+from app.models import Game, GameEvent, GamePlayerStats, GameTeamStats
+
+from .serialize import serialize_event, serialize_player_stats, serialize_team_stats
 
 
 def get_game_stats(uid: str, db: Session = Depends(get_db)):

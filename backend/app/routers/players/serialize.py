@@ -1,5 +1,5 @@
+from app.jsonapi import relationship_linkage, resource_object
 from app.models import Player
-from app.jsonapi import resource_object, relationship_linkage
 
 
 def serialize_player(player: Player) -> dict:

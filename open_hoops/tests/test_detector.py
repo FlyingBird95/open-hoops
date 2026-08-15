@@ -1,7 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch
-from open_hoops.detector import Detector, FrameDetections, _resolve_model_path, _CLASS_MAP
+
+from open_hoops.detector import _CLASS_MAP, Detector, FrameDetections, _resolve_model_path
 
 
 def make_mock_result(boxes_data):

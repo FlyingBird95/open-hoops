@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import date
 
@@ -15,8 +16,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.db.base import Base
-
-import enum
 
 
 class GameStatus(str, enum.Enum):

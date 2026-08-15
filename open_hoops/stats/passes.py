@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import math
-from open_hoops.tracker import TrackedFrame
+
 from open_hoops.models import GameEvent
+from open_hoops.tracker import TrackedFrame
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -34,18 +36,16 @@ class PassDetector:
         nearest = _nearest_player(tf.players, tf.ball_pos)
         events: list[GameEvent] = []
 
-        if (
-            nearest is not None
-            and self._prev_owner is not None
-            and nearest != self._prev_owner
-        ):
-            events.append(GameEvent(
-                type="pass",
-                frame=frame_idx,
-                timestamp_sec=frame_idx / fps,
-                player_id=self._prev_owner,
-                team_id=player_teams.get(self._prev_owner),
-            ))
+        if nearest is not None and self._prev_owner is not None and nearest != self._prev_owner:
+            events.append(
+                GameEvent(
+                    type="pass",
+                    frame=frame_idx,
+                    timestamp_sec=frame_idx / fps,
+                    player_id=self._prev_owner,
+                    team_id=player_teams.get(self._prev_owner),
+                )
+            )
 
         self._prev_owner = nearest
         return events

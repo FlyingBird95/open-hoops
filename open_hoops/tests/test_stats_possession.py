@@ -1,6 +1,5 @@
-import pytest
-from open_hoops.tracker import TrackedFrame, TrackedPlayer
 from open_hoops.stats.possession import PossessionTracker
+from open_hoops.tracker import TrackedFrame, TrackedPlayer
 
 
 def make_tf(players, ball_pos, frame_idx=0):
@@ -17,7 +16,7 @@ def test_possession_assigned_to_nearest_player():
         TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0)),
     ]
     tf = make_tf(players, ball_pos=(5.1, 5.1))
-    events = tracker.update(tf, {1: "team_a", 2: "team_b"}, frame_idx=0, fps=30.0)
+    tracker.update(tf, {1: "team_a", 2: "team_b"}, frame_idx=0, fps=30.0)
     assert tracker._current_owner == 1
 
 
@@ -26,9 +25,7 @@ def test_possession_change_fires_event():
     p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0))
     p2 = TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0))
     tracker.update(make_tf([p1, p2], (5.1, 5.1)), {1: "team_a", 2: "team_b"}, 0, 30.0)
-    events = tracker.update(
-        make_tf([p1, p2], (19.9, 10.0)), {1: "team_a", 2: "team_b"}, 1, 30.0
-    )
+    events = tracker.update(make_tf([p1, p2], (19.9, 10.0)), {1: "team_a", 2: "team_b"}, 1, 30.0)
     assert any(e.type == "possession_change" for e in events)
 
 

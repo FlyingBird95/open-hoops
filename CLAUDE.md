@@ -2,6 +2,15 @@
 
 Basketball video analytics platform. YOLO-based detection + stats extraction from game footage.
 
+## Git Workflow
+
+- **Never commit directly to `main`.** All changes go through feature branches + pull requests.
+- Branch naming: `feat/<short-description>`, `fix/<short-description>`, `chore/<short-description>`.
+- GitHub branch protection enforces this — direct pushes to `main` are blocked.
+- PRs require at least one approving review before merge (admin can bypass).
+- CI must pass (Python tests + lint, Frontend type check + lint + build) before merge.
+- Always use a worktree for feature work to keep `main` clean locally.
+
 ## Project Structure
 
 ```

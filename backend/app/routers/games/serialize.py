@@ -1,7 +1,7 @@
 import os
 
-from app.models import Game, GameFile, GameTeamStats, GamePlayerStats, GameEvent
-from app.jsonapi import resource_object, relationship_linkage
+from app.jsonapi import relationship_linkage, resource_object
+from app.models import Game, GameEvent, GameFile, GamePlayerStats, GameTeamStats
 
 
 def serialize_game(game: Game) -> dict:

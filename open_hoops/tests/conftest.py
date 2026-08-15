@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
 
+
 @pytest.fixture
 def blank_frame():
     return np.zeros((720, 1280, 3), dtype=np.uint8)
+
 
 @pytest.fixture
 def fake_detections():

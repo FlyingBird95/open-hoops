@@ -1,5 +1,5 @@
-from app.models import Team
 from app.jsonapi import resource_object
+from app.models import Team
 
 
 def serialize_team(team: Team) -> dict:

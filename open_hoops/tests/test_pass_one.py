@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
-from open_hoops.pass_one import TrackProfile, PassOneResult, run_pass_one
+
+from open_hoops.pass_one import PassOneResult, TrackProfile, run_pass_one
 
 
 def test_track_profile_defaults():

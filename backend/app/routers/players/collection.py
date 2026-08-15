@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.jsonapi import document
 from app.models import Player, Team
+
 from .serialize import serialize_player
 
 

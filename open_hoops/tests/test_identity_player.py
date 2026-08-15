@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock
+
 from open_hoops.identity.player import PlayerIdentifier, finalize_jerseys
 from open_hoops.pass_one import TrackProfile
 
