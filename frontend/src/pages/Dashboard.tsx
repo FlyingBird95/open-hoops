@@ -38,7 +38,12 @@ export default function Dashboard() {
   const opponentNameByUid = Object.fromEntries((opponents || []).map(t => [t.uid, t.name]));
   const done = games.filter((g: Game) => g.status === "done");
   const active = games.filter((g: Game) => g.status === "processing" || g.status === "pending");
-  const totalHours = done.reduce((sum: number, g: Game) => sum + g.duration_seconds, 0) / 3600;
+  const totalSeconds = done.reduce((sum: number, g: Game) => sum + g.duration_seconds, 0);
+  const formattedDuration = totalSeconds >= 3600
+    ? `${(totalSeconds / 3600).toFixed(1)}h`
+    : totalSeconds >= 60
+      ? `${Math.round(totalSeconds / 60)}m`
+      : `${Math.round(totalSeconds)}s`;
 
   return (
     <div className="space-y-6">
@@ -63,7 +68,7 @@ export default function Dashboard() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Footage Analyzed</p>
-            <p className="text-3xl font-bold">{totalHours.toFixed(1)}h</p>
+            <p className="text-3xl font-bold">{formattedDuration}</p>
           </CardContent>
         </Card>
       </div>
