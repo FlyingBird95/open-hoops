@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from open_hoops.models import (
+    BBox,
     GameStats,
     TeamStats,
     PlayerStats,
@@ -108,7 +109,14 @@ class OpenHoop:
             movement.update(tf)
             score.update(shot_events)
 
-            all_events.extend(poss_events + shot_events + pass_events)
+            frame_events = poss_events + shot_events + pass_events
+            bbox_by_track = {p.track_id: p.bbox for p in tf.players}
+            for ev in frame_events:
+                if ev.player_id is not None and ev.player_id in bbox_by_track:
+                    b = bbox_by_track[ev.player_id]
+                    ev.bbox = BBox(x1=b[0], y1=b[1], x2=b[2], y2=b[3])
+
+            all_events.extend(frame_events)
 
         return self._build_stats(
             fps,

@@ -207,3 +207,8 @@ class GameEvent(Base):
     team_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
     team: Mapped["Team | None"] = relationship()
     """The team involved in this event (if applicable)."""
+
+    bbox_x1: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bbox_y1: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bbox_x2: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bbox_y2: Mapped[int | None] = mapped_column(Integer, nullable=True)

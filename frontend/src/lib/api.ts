@@ -99,6 +99,13 @@ export interface GamePlayerStatsData {
   player_uid?: string;
 }
 
+export interface BBox {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 export interface GameEventData {
   uid: string;
   type: string;
@@ -106,6 +113,7 @@ export interface GameEventData {
   timestamp_sec: number;
   team_uid?: string;
   player_uid?: string;
+  bbox?: BBox | null;
 }
 
 export interface GameFileData {

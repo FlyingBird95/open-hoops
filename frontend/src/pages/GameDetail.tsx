@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Archive, ArchiveRestore } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Archive, ArchiveRestore, Eye } from "lucide-react";
 import { ScoreCard } from "@/components/viz/score-card";
 import { StatBar } from "@/components/viz/stat-bar";
 import { DonutChart } from "@/components/viz/donut-chart";
@@ -277,28 +278,58 @@ function VideoPlayer({ files, seekTarget, onSeeked }: { files: GameFileData[]; s
 }
 
 function EventTimeline({ events, game, teamNameByUid, playerNameByUid, onEventClick }: { events: GameEventData[]; game: Game; teamNameByUid: Record<string, string>; playerNameByUid: Record<string, string>; onEventClick: (timestampSec: number) => void }) {
+  const [frameEvent, setFrameEvent] = useState<GameEventData | null>(null);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Events ({events.length})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="max-h-96 overflow-y-auto space-y-1">
-          {events.map((e) => (
-            <div
-              key={e.uid}
-              className="flex gap-4 text-sm py-1 border-b cursor-pointer hover:bg-muted/50 rounded px-1 border-l-2"
-              style={{ borderLeftColor: e.team_uid === game.own_team_uid ? game.own_team_color : game.opponent_team_color }}
-              onClick={() => onEventClick(e.timestamp_sec)}
-            >
-              <span className="text-muted-foreground w-16">{e.timestamp_sec.toFixed(1)}s</span>
-              <Badge variant="outline">{e.type}</Badge>
-              {e.team_uid && <span className="text-xs text-muted-foreground">{teamNameByUid[e.team_uid] || "Unknown"}</span>}
-              {e.player_uid && <span className="text-xs font-medium">{playerNameByUid[e.player_uid] || "?"}</span>}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Events ({events.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-h-96 overflow-y-auto space-y-1">
+            {events.map((e) => (
+              <div
+                key={e.uid}
+                className="flex items-center gap-4 text-sm py-1 border-b cursor-pointer hover:bg-muted/50 rounded px-1 border-l-2"
+                style={{ borderLeftColor: e.team_uid === game.own_team_uid ? game.own_team_color : game.opponent_team_color }}
+                onClick={() => onEventClick(e.timestamp_sec)}
+              >
+                <span className="text-muted-foreground w-16">{e.timestamp_sec.toFixed(1)}s</span>
+                <Badge variant="outline">{e.type}</Badge>
+                {e.team_uid && <span className="text-xs text-muted-foreground">{teamNameByUid[e.team_uid] || "Unknown"}</span>}
+                {e.player_uid && <span className="text-xs font-medium">{playerNameByUid[e.player_uid] || "?"}</span>}
+                {e.bbox && (
+                  <button
+                    className="ml-auto p-1 rounded hover:bg-muted"
+                    title="View detection frame"
+                    onClick={(ev) => { ev.stopPropagation(); setFrameEvent(e); }}
+                  >
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!frameEvent} onOpenChange={(open) => { if (!open) setFrameEvent(null); }}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {frameEvent && `${frameEvent.type} @ ${frameEvent.timestamp_sec.toFixed(1)}s`}
+            </DialogTitle>
+          </DialogHeader>
+          {frameEvent && (
+            <img
+              src={`/api/games/${game.uid}/events/${frameEvent.uid}/frame`}
+              alt="Annotated detection frame"
+              className="w-full rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

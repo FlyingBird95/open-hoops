@@ -56,12 +56,20 @@ class SubstitutionEvent(BaseModel):
     frame_off: int | None = None
 
 
+class BBox(BaseModel):
+    x1: int
+    y1: int
+    x2: int
+    y2: int
+
+
 class GameEvent(BaseModel):
     type: Literal["shot", "make", "miss", "pass", "possession_change"]
     frame: int
     timestamp_sec: float
     player_id: int | None = None
     team_id: str | None = None
+    bbox: BBox | None = None
 
 
 class GameStats(BaseModel):

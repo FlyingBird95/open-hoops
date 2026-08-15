@@ -96,16 +96,16 @@ def analyze_game(game_uid: str) -> None:
                     s["possession_frames"] += ps.possession_frames
 
             for event in stats.events:
-                all_events.append(
-                    {
-                        "type": event.type,
-                        "frame": event.frame + frame_offset,
-                        "timestamp_sec": event.timestamp_sec
-                        + (total_duration - stats.duration_seconds),
-                        "team_id": event.team_id,
-                        "player_id": event.player_id,
-                    }
-                )
+                ev_dict = {
+                    "type": event.type,
+                    "frame": event.frame + frame_offset,
+                    "timestamp_sec": event.timestamp_sec
+                    + (total_duration - stats.duration_seconds),
+                    "team_id": event.team_id,
+                    "player_id": event.player_id,
+                    "bbox": event.bbox,
+                }
+                all_events.append(ev_dict)
 
             frame_offset += int(stats.duration_seconds * stats.fps)
 
@@ -157,6 +157,7 @@ def analyze_game(game_uid: str) -> None:
             if ev["player_id"] is not None and team_id is not None:
                 player = player_map.get((team_id, ev["player_id"]))
 
+            bbox = ev["bbox"]
             db.add(
                 GameEvent(
                     game_id=game.id,
@@ -165,6 +166,10 @@ def analyze_game(game_uid: str) -> None:
                     timestamp_sec=ev["timestamp_sec"],
                     player_id=player.id if player else None,
                     team_id=team_id,
+                    bbox_x1=bbox.x1 if bbox else None,
+                    bbox_y1=bbox.y1 if bbox else None,
+                    bbox_x2=bbox.x2 if bbox else None,
+                    bbox_y2=bbox.y2 if bbox else None,
                 )
             )
 

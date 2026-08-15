@@ -6,6 +6,7 @@ from .get import get_game
 from .patch import update_game
 from .stats import get_game_stats, get_game_events
 from .files import list_game_files
+from .frame import get_event_frame
 
 router = APIRouter(prefix="/api/games", tags=["games"])
 router.get("")(list_games)
@@ -15,3 +16,4 @@ router.patch("/{uid}")(update_game)
 router.get("/{uid}/stats")(get_game_stats)
 router.get("/{uid}/events")(get_game_events)
 router.get("/{uid}/files")(list_game_files)
+router.get("/{uid}/events/{event_id}/frame")(get_event_frame)

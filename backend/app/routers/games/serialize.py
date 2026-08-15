@@ -89,6 +89,10 @@ def serialize_event(ev: GameEvent) -> dict:
     if ev.player:
         rels["player"] = relationship_linkage("players", ev.player.uid)
 
+    bbox = None
+    if ev.bbox_x1 is not None:
+        bbox = {"x1": ev.bbox_x1, "y1": ev.bbox_y1, "x2": ev.bbox_x2, "y2": ev.bbox_y2}
+
     return resource_object(
         type="game_events",
         uid=str(ev.id),
@@ -96,6 +100,7 @@ def serialize_event(ev: GameEvent) -> dict:
             "type": ev.type,
             "frame": ev.frame,
             "timestamp_sec": ev.timestamp_sec,
+            "bbox": bbox,
         },
         relationships=rels,
     )
