@@ -1,5 +1,5 @@
-from open_hoops.tracker import TrackedFrame
 from open_hoops.stats.shots import ShotDetector
+from open_hoops.tracker import TrackedFrame
 
 
 def make_tf(ball_pos, hoops=None, players=None, frame_idx=0):

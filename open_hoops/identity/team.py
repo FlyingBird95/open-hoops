@@ -1,8 +1,10 @@
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
-from typing import TYPE_CHECKING
 
 from open_hoops.models import Roster
 

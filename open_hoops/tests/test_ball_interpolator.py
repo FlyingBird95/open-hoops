@@ -1,4 +1,5 @@
 import pytest
+
 from open_hoops.stats.ball_interpolator import interpolate_ball
 
 

@@ -288,6 +288,7 @@ def test_edit_overlay_returns_video():
         mock_writer_cls.return_value = mock_writer
 
         from open_hoops.models import GameStats, Video, TeamStats
+
         fake_stats = GameStats(
             video=Video(path="fake.mp4"),
             duration_seconds=5 / 30.0,
@@ -312,6 +313,7 @@ def test_edit_overlay_raises_on_invalid_video():
         mock_cap_cls.return_value = mock_cap
 
         from open_hoops.models import GameStats, Video
+
         fake_stats = GameStats(
             video=Video(path="bad.mp4"),
             duration_seconds=1.0,
@@ -351,12 +353,8 @@ from open_hoops.stats.passes import PassDetector
 from open_hoops.stats.score import ScoreTracker
 from open_hoops.overlay import Overlay
 
-_DEFAULT_SRC = np.array(
-    [[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32
-)
-_DEFAULT_DST = np.array(
-    [[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32
-)
+_DEFAULT_SRC = np.array([[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32)
+_DEFAULT_DST = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)
 
 _BALL_MISSING_WARN_FRAMES = 5 * 30  # baseline at 30 fps
 
@@ -405,7 +403,9 @@ class OpenHoop:
 
         frame_idx = 0
         ball_missing_count = 0
-        warn_threshold = int(_BALL_MISSING_WARN_FRAMES * (fps / 30.0)) if fps > 0 else _BALL_MISSING_WARN_FRAMES
+        warn_threshold = (
+            int(_BALL_MISSING_WARN_FRAMES * (fps / 30.0)) if fps > 0 else _BALL_MISSING_WARN_FRAMES
+        )
 
         while True:
             ret, frame = cap.read()
@@ -445,7 +445,9 @@ class OpenHoop:
             poss_events = possession.update(tf, player_teams, frame_idx, fps)
             shot_events = shots.update(tf, player_teams, possession_owner, frame_idx, fps)
             shot_this_frame = any(e.type == "shot" for e in shot_events)
-            pass_events = passes.update(tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame)
+            pass_events = passes.update(
+                tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame
+            )
             movement.update(tf)
             score.update(shot_events)
 
@@ -453,7 +455,17 @@ class OpenHoop:
             frame_idx += 1
 
         cap.release()
-        return self._build_stats(fps, frame_idx, player_teams, player_ident, movement, possession, score, team_clf, all_events)
+        return self._build_stats(
+            fps,
+            frame_idx,
+            player_teams,
+            player_ident,
+            movement,
+            possession,
+            score,
+            team_clf,
+            all_events,
+        )
 
     def edit_overlay(self, game_stats: GameStats, output_path: str) -> Video:
         """Render score HUD onto source video using precomputed game_stats. Writes to output_path."""

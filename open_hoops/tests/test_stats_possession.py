@@ -1,5 +1,5 @@
-from open_hoops.tracker import TrackedFrame, TrackedPlayer
 from open_hoops.stats.possession import PossessionTracker
+from open_hoops.tracker import TrackedFrame, TrackedPlayer
 
 
 def make_tf(players, ball_pos, frame_idx=0):

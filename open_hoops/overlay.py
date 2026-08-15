@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import cv2
 import numpy as np
 
@@ -25,7 +26,7 @@ class Overlay:
         fps: float,
     ) -> np.ndarray:
         out = frame.copy()
-        h, w = out.shape[:2]
+        _h, w = out.shape[:2]
 
         # background strip
         x0 = (w - self.HUD_W) // 2

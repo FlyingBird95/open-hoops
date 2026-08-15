@@ -1,30 +1,31 @@
 from __future__ import annotations
+
 import math
 
 import cv2
 import numpy as np
 
+from open_hoops.identity.player import finalize_jerseys
+from open_hoops.identity.team import assign_teams_from_profiles
 from open_hoops.models import (
     BBox,
     GameStats,
-    TeamStats,
     PlayerStats,
     Point,
     Roster,
     SubstitutionEvent,
+    TeamStats,
     Video,
 )
-from open_hoops.identity.team import assign_teams_from_profiles
-from open_hoops.identity.player import finalize_jerseys
-from open_hoops.stats.possession import PossessionTracker
-from open_hoops.stats.shots import ShotDetector
-from open_hoops.stats.movement import MovementTracker
-from open_hoops.stats.passes import PassDetector
-from open_hoops.stats.score import ScoreTracker
-from open_hoops.stats.ball_interpolator import interpolate_ball
-from open_hoops.stats.substitutions import SubstitutionTracker
 from open_hoops.overlay import Overlay
 from open_hoops.pass_one import run_pass_one
+from open_hoops.stats.ball_interpolator import interpolate_ball
+from open_hoops.stats.movement import MovementTracker
+from open_hoops.stats.passes import PassDetector
+from open_hoops.stats.possession import PossessionTracker
+from open_hoops.stats.score import ScoreTracker
+from open_hoops.stats.shots import ShotDetector
+from open_hoops.stats.substitutions import SubstitutionTracker
 
 _DEFAULT_SRC = np.array([[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32)
 _DEFAULT_DST = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)

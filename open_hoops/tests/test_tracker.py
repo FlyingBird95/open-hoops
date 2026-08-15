@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
+
 from open_hoops.detector import Detection, FrameDetections
-from open_hoops.tracker import Tracker, TrackedFrame, compute_homography
+from open_hoops.tracker import TrackedFrame, Tracker, compute_homography
 
 
 @pytest.fixture

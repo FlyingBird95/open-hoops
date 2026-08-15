@@ -144,7 +144,9 @@ class Team(Base):
     home_color: Mapped[str] = mapped_column(String(7), default="#000000")
     away_color: Mapped[str] = mapped_column(String(7), default="#ffffff")
 
-    players: Mapped[list["Player"]] = relationship(back_populates="team", cascade="all, delete-orphan")
+    players: Mapped[list["Player"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan"
+    )
 
 
 class Player(Base):
@@ -477,7 +479,9 @@ client = TestClient(app)
 
 
 def test_create_team():
-    resp = client.post("/api/teams", json={"name": "Lakers", "is_own": True, "home_color": "#552583"})
+    resp = client.post(
+        "/api/teams", json={"name": "Lakers", "is_own": True, "home_color": "#552583"}
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "Lakers"
@@ -688,7 +692,9 @@ def team_uid():
 
 
 def test_create_player(team_uid):
-    resp = client.post("/api/players", json={"team_uid": team_uid, "jersey_number": 23, "name": "LeBron"})
+    resp = client.post(
+        "/api/players", json={"team_uid": team_uid, "jersey_number": 23, "name": "LeBron"}
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["jersey_number"] == 23
@@ -1010,7 +1016,12 @@ def test_list_videos(mock_task, teams):
 
     client.post(
         "/api/videos",
-        data={"name": "G1", "date": "2026-01-15", "home_team_uid": home_uid, "away_team_uid": away_uid},
+        data={
+            "name": "G1",
+            "date": "2026-01-15",
+            "home_team_uid": home_uid,
+            "away_team_uid": away_uid,
+        },
         files={"file": ("g.mp4", BytesIO(b"data"), "video/mp4")},
     )
     resp = client.get("/api/videos")
@@ -1024,7 +1035,12 @@ def test_get_video(mock_task, teams):
 
     resp = client.post(
         "/api/videos",
-        data={"name": "G1", "date": "2026-01-15", "home_team_uid": home_uid, "away_team_uid": away_uid},
+        data={
+            "name": "G1",
+            "date": "2026-01-15",
+            "home_team_uid": home_uid,
+            "away_team_uid": away_uid,
+        },
         files={"file": ("g.mp4", BytesIO(b"data"), "video/mp4")},
     )
     uid = resp.json()["uid"]

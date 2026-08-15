@@ -1,4 +1,4 @@
-from open_hoops import OpenHoop, Video, GameStats, Roster, TeamRoster
+from open_hoops import GameStats, OpenHoop, Roster, TeamRoster, Video
 
 
 def test_public_imports():

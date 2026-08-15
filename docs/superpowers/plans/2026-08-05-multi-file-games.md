@@ -363,6 +363,7 @@ def list_game_files(uid: str, db: Session = Depends(get_db)):
 ```python
 from app.models import GameFile
 
+
 def serialize_game_file(gf: GameFile) -> dict:
     return resource_object(
         type="game_files",
@@ -384,6 +385,7 @@ Add to `backend/app/routers/games/router.py`:
 
 ```python
 from .files import list_game_files
+
 router.get("/{uid}/files")(list_game_files)
 ```
 
@@ -450,14 +452,16 @@ def test_analyze_merges_multiple_files(db_session, monkeypatch):
     db_session.flush()
 
     for i in range(2):
-        db_session.add(GameFile(
-            uid=generate_uid(),
-            game_id=game.id,
-            file_path=f"uploads/part{i}.mp4",
-            position=i,
-            original_filename=f"part{i}.mp4",
-            size_bytes=1000,
-        ))
+        db_session.add(
+            GameFile(
+                uid=generate_uid(),
+                game_id=game.id,
+                file_path=f"uploads/part{i}.mp4",
+                position=i,
+                original_filename=f"part{i}.mp4",
+                size_bytes=1000,
+            )
+        )
     db_session.commit()
 
     mock_oh = MagicMock()
@@ -465,6 +469,7 @@ def test_analyze_merges_multiple_files(db_session, monkeypatch):
 
     with patch("worker.tasks.OpenHoop", return_value=mock_oh) as MockOH:
         from worker.tasks import analyze_game
+
         analyze_game(game.uid)
 
     db_session.refresh(game)
@@ -512,10 +517,7 @@ def analyze_game(game_uid: str) -> None:
         )
 
         game_files = (
-            db.query(GameFile)
-            .filter(GameFile.game_id == game.id)
-            .order_by(GameFile.position)
-            .all()
+            db.query(GameFile).filter(GameFile.game_id == game.id).order_by(GameFile.position).all()
         )
 
         # Fallback for legacy games with file_path but no GameFile rows
@@ -568,13 +570,16 @@ def analyze_game(game_uid: str) -> None:
                     s["possession_frames"] += ps.possession_frames
 
             for event in stats.events:
-                all_events.append({
-                    "type": event.type,
-                    "frame": event.frame + frame_offset,
-                    "timestamp_sec": event.timestamp_sec + (total_duration - stats.duration_seconds),
-                    "team_id": event.team_id,
-                    "player_id": event.player_id,
-                })
+                all_events.append(
+                    {
+                        "type": event.type,
+                        "frame": event.frame + frame_offset,
+                        "timestamp_sec": event.timestamp_sec
+                        + (total_duration - stats.duration_seconds),
+                        "team_id": event.team_id,
+                        "player_id": event.player_id,
+                    }
+                )
 
             frame_offset += int(stats.duration_seconds * stats.fps)
 
@@ -588,28 +593,32 @@ def analyze_game(game_uid: str) -> None:
         for key, ts in all_team_stats.items():
             team_id = game.home_team_id if key == "home" else game.away_team_id
             avg_poss = ts["possession_pct"] / ts["count"] if ts["count"] else 0
-            db.add(GameTeamStats(
-                game_id=game.id,
-                team_id=team_id,
-                score=ts["score"],
-                possession_pct=avg_poss,
-            ))
+            db.add(
+                GameTeamStats(
+                    game_id=game.id,
+                    team_id=team_id,
+                    score=ts["score"],
+                    possession_pct=avg_poss,
+                )
+            )
 
         for (team_key, jersey), ps in all_player_stats.items():
             team_id = game.home_team_id if team_key == "home" else game.away_team_id
             player = player_map.get((team_id, jersey))
-            db.add(GamePlayerStats(
-                game_id=game.id,
-                team_id=team_id,
-                player_id=player.id if player else None,
-                jersey_number=jersey,
-                distance_covered_m=ps["distance_covered_m"],
-                shot_attempts=ps["shot_attempts"],
-                shot_makes=ps["shot_makes"],
-                passes_made=ps["passes_made"],
-                passes_received=ps["passes_received"],
-                possession_frames=ps["possession_frames"],
-            ))
+            db.add(
+                GamePlayerStats(
+                    game_id=game.id,
+                    team_id=team_id,
+                    player_id=player.id if player else None,
+                    jersey_number=jersey,
+                    distance_covered_m=ps["distance_covered_m"],
+                    shot_attempts=ps["shot_attempts"],
+                    shot_makes=ps["shot_makes"],
+                    passes_made=ps["passes_made"],
+                    passes_received=ps["passes_received"],
+                    possession_frames=ps["possession_frames"],
+                )
+            )
 
         for ev in all_events:
             team_id = None
@@ -622,14 +631,16 @@ def analyze_game(game_uid: str) -> None:
             if ev["player_id"] is not None and team_id is not None:
                 player = player_map.get((team_id, ev["player_id"]))
 
-            db.add(GameEvent(
-                game_id=game.id,
-                type=ev["type"],
-                frame=ev["frame"],
-                timestamp_sec=ev["timestamp_sec"],
-                player_id=player.id if player else None,
-                team_id=team_id,
-            ))
+            db.add(
+                GameEvent(
+                    game_id=game.id,
+                    type=ev["type"],
+                    frame=ev["frame"],
+                    timestamp_sec=ev["timestamp_sec"],
+                    player_id=player.id if player else None,
+                    team_id=team_id,
+                )
+            )
 
         game.status = GameStatus.done
         db.commit()
@@ -802,7 +813,9 @@ Edit the generated file:
 def upgrade():
     conn = op.get_bind()
     games = conn.execute(
-        sa.text("SELECT id, uid, file_path FROM games WHERE file_path != '' AND file_path IS NOT NULL")
+        sa.text(
+            "SELECT id, uid, file_path FROM games WHERE file_path != '' AND file_path IS NOT NULL"
+        )
     )
     for game in games:
         existing = conn.execute(
@@ -816,7 +829,12 @@ def upgrade():
                     "INSERT INTO game_files (uid, game_id, file_path, position, original_filename, size_bytes) "
                     "VALUES (:uid, :gid, :path, 0, :fname, 0)"
                 ),
-                {"uid": uid, "gid": game.id, "path": game.file_path, "fname": game.file_path.split("/")[-1]},
+                {
+                    "uid": uid,
+                    "gid": game.id,
+                    "path": game.file_path,
+                    "fname": game.file_path.split("/")[-1],
+                },
             )
 
 

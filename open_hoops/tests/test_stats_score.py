@@ -1,5 +1,5 @@
-from open_hoops.stats.score import ScoreTracker
 from open_hoops.models import GameEvent
+from open_hoops.stats.score import ScoreTracker
 
 
 def make_make_event(team_id):

@@ -192,7 +192,9 @@ def test_archive_game(mock_task, teams):
 def test_patch_game_not_found():
     resp = client.patch(
         "/api/games/doesnotexist",
-        json={"data": {"type": "games", "uid": "doesnotexist", "attributes": {"is_archived": True}}},
+        json={
+            "data": {"type": "games", "uid": "doesnotexist", "attributes": {"is_archived": True}}
+        },
     )
     assert resp.status_code == 404
 ```

@@ -1,7 +1,9 @@
 """Movement tracking for basketball players."""
 
 from __future__ import annotations
+
 import math
+
 from open_hoops.tracker import TrackedFrame
 
 

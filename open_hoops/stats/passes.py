@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import math
-from open_hoops.tracker import TrackedFrame
+
 from open_hoops.models import GameEvent
+from open_hoops.tracker import TrackedFrame
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:

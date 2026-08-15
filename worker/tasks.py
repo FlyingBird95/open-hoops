@@ -1,16 +1,16 @@
 import os
 
-from worker.celery_app import celery
 from open_hoops.db import (
-    get_session_factory,
     Game,
+    GameEvent,
     GameFile,
-    Player,
+    GamePlayerStats,
     GameStatus,
     GameTeamStats,
-    GamePlayerStats,
-    GameEvent,
+    Player,
+    get_session_factory,
 )
+from worker.celery_app import celery
 
 database_url = os.environ.get(
     "OPEN_HOOPS_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/open_hoops"
@@ -175,7 +175,7 @@ def analyze_game(game_uid: str) -> None:
 
         game.status = GameStatus.done
         db.commit()
-    except Exception:
+    except Exception:  # noqa: BLE001
         db.rollback()
         game.status = GameStatus.failed
         db.commit()

@@ -1,25 +1,25 @@
 from open_hoops.db import (
     Base,
-    Team,
-    Player,
     Game,
+    GameEvent,
     GameFile,
+    GamePlayerStats,
     GameStatus,
     GameTeamStats,
-    GamePlayerStats,
-    GameEvent,
+    Player,
+    Team,
     generate_uid,
 )
 
 __all__ = [
     "Base",
-    "Team",
-    "Player",
     "Game",
+    "GameEvent",
     "GameFile",
+    "GamePlayerStats",
     "GameStatus",
     "GameTeamStats",
-    "GamePlayerStats",
-    "GameEvent",
+    "Player",
+    "Team",
     "generate_uid",
 ]

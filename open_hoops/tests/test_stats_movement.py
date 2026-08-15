@@ -1,5 +1,5 @@
-from open_hoops.tracker import TrackedFrame, TrackedPlayer
 from open_hoops.stats.movement import MovementTracker
+from open_hoops.tracker import TrackedFrame, TrackedPlayer
 
 
 def make_tf(players, frame_idx=0):

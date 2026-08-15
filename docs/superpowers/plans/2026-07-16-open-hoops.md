@@ -88,6 +88,7 @@
 import json
 from open_hoops.models import GameStats, TeamStats, PlayerStats, GameEvent, Point
 
+
 def test_gamestats_json_roundtrip():
     stats = GameStats(
         video_path="game.mp4",
@@ -100,11 +101,13 @@ def test_gamestats_json_roundtrip():
     assert json.dumps(dumped)  # must be JSON-serializable
     assert dumped["video_path"] == "game.mp4"
 
+
 def test_player_stats_defaults():
     p = PlayerStats(player_id=None, team_id="team_a")
     assert p.shot_attempts == 0
     assert p.distance_covered_m == 0.0
     assert p.positions == []
+
 
 def test_game_event_types():
     for t in ("shot", "make", "miss", "pass", "possession_change"):
@@ -250,9 +253,11 @@ __all__ = ["TeamClassifier", "PlayerIdentifier"]
 import numpy as np
 import pytest
 
+
 @pytest.fixture
 def blank_frame():
     return np.zeros((720, 1280, 3), dtype=np.uint8)
+
 
 @pytest.fixture
 def fake_detections():
@@ -321,12 +326,8 @@ def make_mock_result(boxes_data):
     mock_boxes.xyxy.cpu().numpy.return_value = np.array(
         [[b[0], b[1], b[2], b[3]] for b in boxes_data], dtype=float
     )
-    mock_boxes.conf.cpu().numpy.return_value = np.array(
-        [b[4] for b in boxes_data], dtype=float
-    )
-    mock_boxes.cls.cpu().numpy.return_value = np.array(
-        [b[5] for b in boxes_data], dtype=float
-    )
+    mock_boxes.conf.cpu().numpy.return_value = np.array([b[4] for b in boxes_data], dtype=float)
+    mock_boxes.cls.cpu().numpy.return_value = np.array([b[5] for b in boxes_data], dtype=float)
     ids = [b[6] for b in boxes_data]
     if any(i is not None for i in ids):
         mock_boxes.id.cpu().numpy.return_value = np.array(
@@ -343,12 +344,14 @@ def make_mock_result(boxes_data):
 def test_detect_returns_frame_detections(mock_yolo_cls):
     mock_model = MagicMock()
     mock_yolo_cls.return_value = mock_model
-    mock_model.track.return_value = make_mock_result([
-        (100, 200, 150, 300, 0.9, 0, 1),
-        (400, 200, 450, 300, 0.85, 0, 2),
-        (200, 250, 220, 270, 0.8, 1, None),
-        (50, 350, 100, 380, 0.95, 2, None),
-    ])
+    mock_model.track.return_value = make_mock_result(
+        [
+            (100, 200, 150, 300, 0.9, 0, 1),
+            (400, 200, 450, 300, 0.85, 0, 2),
+            (200, 250, 220, 270, 0.8, 1, None),
+            (50, 350, 100, 380, 0.95, 2, None),
+        ]
+    )
 
     detector = Detector("yolo11n.pt")
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
@@ -417,9 +420,7 @@ class Detector:
         confs = boxes.conf.cpu().numpy()
         classes = boxes.cls.cpu().numpy().astype(int)
         track_ids = (
-            boxes.id.cpu().numpy().astype(int)
-            if boxes.id is not None
-            else [None] * len(bboxes)
+            boxes.id.cpu().numpy().astype(int) if boxes.id is not None else [None] * len(bboxes)
         )
 
         for bbox, conf, cls_id, tid in zip(bboxes, confs, classes, track_ids):
@@ -516,8 +517,8 @@ def test_tracker_no_ball(identity_homography):
 
 
 def test_compute_homography_returns_matrix():
-    src = np.array([[0,0],[100,0],[100,100],[0,100]], dtype=np.float32)
-    dst = np.array([[0,0],[28.65,0],[28.65,15.24],[0,15.24]], dtype=np.float32)
+    src = np.array([[0, 0], [100, 0], [100, 100], [0, 100]], dtype=np.float32)
+    dst = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)
     H = compute_homography(src, dst)
     assert H.shape == (3, 3)
 ```
@@ -560,9 +561,7 @@ def compute_homography(src_pts: np.ndarray, dst_pts: np.ndarray) -> np.ndarray:
     return H
 
 
-def _pixel_to_court(
-    px: float, py: float, H: np.ndarray
-) -> tuple[float, float]:
+def _pixel_to_court(px: float, py: float, H: np.ndarray) -> tuple[float, float]:
     pt = np.array([[[px, py]]], dtype=np.float32)
     transformed = cv2.perspectiveTransform(pt, H)
     x, y = transformed[0][0]
@@ -771,9 +770,7 @@ class TeamClassifier:
             r, g, b = _dominant_bgr(crops_for_color[idx[0]])
             self.team_colors[team_id] = f"#{r:02x}{g:02x}{b:02x}"
 
-    def assign(
-        self, frame: np.ndarray, bbox: tuple[int, int, int, int]
-    ) -> str:
+    def assign(self, frame: np.ndarray, bbox: tuple[int, int, int, int]) -> str:
         if self._kmeans is None:
             return "team_a"
         crop = _torso_crop(frame, bbox)
@@ -980,8 +977,8 @@ def make_tf(players, ball_pos, frame_idx=0):
 def test_possession_assigned_to_nearest_player():
     tracker = PossessionTracker()
     players = [
-        TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(5.0, 5.0)),
-        TrackedPlayer(track_id=2, bbox=(0,0,1,1), court_pos=(20.0, 10.0)),
+        TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0)),
+        TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0)),
     ]
     tf = make_tf(players, ball_pos=(5.1, 5.1))
     events = tracker.update(tf, {1: "team_a", 2: "team_b"}, frame_idx=0, fps=30.0)
@@ -990,8 +987,8 @@ def test_possession_assigned_to_nearest_player():
 
 def test_possession_change_fires_event():
     tracker = PossessionTracker()
-    p1 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(5.0, 5.0))
-    p2 = TrackedPlayer(track_id=2, bbox=(0,0,1,1), court_pos=(20.0, 10.0))
+    p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0))
+    p2 = TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0))
     tracker.update(make_tf([p1, p2], (5.1, 5.1)), {1: "team_a", 2: "team_b"}, 0, 30.0)
     events = tracker.update(make_tf([p1, p2], (19.9, 10.0)), {1: "team_a", 2: "team_b"}, 1, 30.0)
     assert any(e.type == "possession_change" for e in events)
@@ -999,8 +996,8 @@ def test_possession_change_fires_event():
 
 def test_finalize_sums_to_one():
     tracker = PossessionTracker()
-    p1 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(5.0, 5.0))
-    p2 = TrackedPlayer(track_id=2, bbox=(0,0,1,1), court_pos=(20.0, 10.0))
+    p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0))
+    p2 = TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0))
     for i in range(10):
         tracker.update(make_tf([p1, p2], (5.1, 5.1)), {1: "team_a", 2: "team_b"}, i, 30.0)
     pct = tracker.finalize(10)
@@ -1078,10 +1075,7 @@ class PossessionTracker:
         ball_frames = sum(self._frame_counts.values())
         if ball_frames == 0:
             return {"team_a": 0.0, "team_b": 0.0}
-        return {
-            team: count / ball_frames
-            for team, count in self._frame_counts.items()
-        }
+        return {team: count / ball_frames for team, count in self._frame_counts.items()}
 ```
 
 - [ ] **Step 4: Run tests — expect PASS**
@@ -1203,29 +1197,35 @@ class ShotDetector:
             now_in = dist <= self._radius
 
             if now_in and not was_in:
-                events.append(GameEvent(
-                    type="shot",
-                    frame=frame_idx,
-                    timestamp_sec=frame_idx / fps,
-                    player_id=possession_owner,
-                    team_id=team_id,
-                ))
+                events.append(
+                    GameEvent(
+                        type="shot",
+                        frame=frame_idx,
+                        timestamp_sec=frame_idx / fps,
+                        player_id=possession_owner,
+                        team_id=team_id,
+                    )
+                )
             if dist <= _MAKE_RADIUS and was_in:
-                events.append(GameEvent(
-                    type="make",
-                    frame=frame_idx,
-                    timestamp_sec=frame_idx / fps,
-                    player_id=possession_owner,
-                    team_id=team_id,
-                ))
+                events.append(
+                    GameEvent(
+                        type="make",
+                        frame=frame_idx,
+                        timestamp_sec=frame_idx / fps,
+                        player_id=possession_owner,
+                        team_id=team_id,
+                    )
+                )
             elif not now_in and was_in:
-                events.append(GameEvent(
-                    type="miss",
-                    frame=frame_idx,
-                    timestamp_sec=frame_idx / fps,
-                    player_id=possession_owner,
-                    team_id=team_id,
-                ))
+                events.append(
+                    GameEvent(
+                        type="miss",
+                        frame=frame_idx,
+                        timestamp_sec=frame_idx / fps,
+                        player_id=possession_owner,
+                        team_id=team_id,
+                    )
+                )
 
             self._in_region[idx] = now_in
 
@@ -1280,8 +1280,8 @@ def make_tf(players, frame_idx=0):
 
 def test_distance_accumulates():
     tracker = MovementTracker()
-    p1 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(0.0, 0.0))
-    p2 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(3.0, 4.0))  # dist=5
+    p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(0.0, 0.0))
+    p2 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(3.0, 4.0))  # dist=5
     tracker.update(make_tf([p1], 0))
     tracker.update(make_tf([p2], 1))
     assert abs(tracker.get_distance(1) - 5.0) < 0.001
@@ -1289,7 +1289,7 @@ def test_distance_accumulates():
 
 def test_positions_recorded():
     tracker = MovementTracker()
-    p = TrackedPlayer(track_id=2, bbox=(0,0,1,1), court_pos=(1.0, 2.0))
+    p = TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(1.0, 2.0))
     tracker.update(make_tf([p], 0))
     positions = tracker.get_positions(2)
     assert positions == [(1.0, 2.0)]
@@ -1333,8 +1333,8 @@ class MovementTracker:
             pos = player.court_pos
             self._positions.setdefault(tid, []).append(pos)
             if tid in self._last_pos:
-                self._distances[tid] = (
-                    self._distances.get(tid, 0.0) + _dist(self._last_pos[tid], pos)
+                self._distances[tid] = self._distances.get(tid, 0.0) + _dist(
+                    self._last_pos[tid], pos
                 )
             self._last_pos[tid] = pos
 
@@ -1392,29 +1392,38 @@ def make_tf(players, ball_pos, frame_idx=0):
 
 def test_pass_detected_on_zone_change():
     det = PassDetector()
-    p1 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(5.0, 5.0))
-    p2 = TrackedPlayer(track_id=2, bbox=(0,0,1,1), court_pos=(20.0, 10.0))
+    p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0))
+    p2 = TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0))
 
     # ball near p1
     det.update(make_tf([p1, p2], (5.1, 5.1)), {1: "team_a", 2: "team_a"}, 1, 0, 30.0, False)
     # ball moves to p2
-    events = det.update(make_tf([p1, p2], (19.9, 10.0)), {1: "team_a", 2: "team_a"}, 2, 1, 30.0, False)
+    events = det.update(
+        make_tf([p1, p2], (19.9, 10.0)), {1: "team_a", 2: "team_a"}, 2, 1, 30.0, False
+    )
     assert any(e.type == "pass" for e in events)
 
 
 def test_no_pass_when_shot_this_frame():
     det = PassDetector()
-    p1 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(5.0, 5.0))
-    p2 = TrackedPlayer(track_id=2, bbox=(0,0,1,1), court_pos=(20.0, 10.0))
+    p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0))
+    p2 = TrackedPlayer(track_id=2, bbox=(0, 0, 1, 1), court_pos=(20.0, 10.0))
 
     det.update(make_tf([p1, p2], (5.1, 5.1)), {1: "team_a", 2: "team_a"}, 1, 0, 30.0, False)
-    events = det.update(make_tf([p1, p2], (19.9, 10.0)), {1: "team_a", 2: "team_a"}, 2, 1, 30.0, shot_this_frame=True)
+    events = det.update(
+        make_tf([p1, p2], (19.9, 10.0)),
+        {1: "team_a", 2: "team_a"},
+        2,
+        1,
+        30.0,
+        shot_this_frame=True,
+    )
     assert not any(e.type == "pass" for e in events)
 
 
 def test_no_pass_on_first_frame():
     det = PassDetector()
-    p1 = TrackedPlayer(track_id=1, bbox=(0,0,1,1), court_pos=(5.0, 5.0))
+    p1 = TrackedPlayer(track_id=1, bbox=(0, 0, 1, 1), court_pos=(5.0, 5.0))
     events = det.update(make_tf([p1], (5.1, 5.1)), {1: "team_a"}, 1, 0, 30.0, False)
     assert events == []
 ```
@@ -1466,18 +1475,16 @@ class PassDetector:
         nearest = _nearest_player(tf.players, tf.ball_pos)
         events: list[GameEvent] = []
 
-        if (
-            nearest is not None
-            and self._prev_owner is not None
-            and nearest != self._prev_owner
-        ):
-            events.append(GameEvent(
-                type="pass",
-                frame=frame_idx,
-                timestamp_sec=frame_idx / fps,
-                player_id=self._prev_owner,
-                team_id=player_teams.get(self._prev_owner),
-            ))
+        if nearest is not None and self._prev_owner is not None and nearest != self._prev_owner:
+            events.append(
+                GameEvent(
+                    type="pass",
+                    frame=frame_idx,
+                    timestamp_sec=frame_idx / fps,
+                    player_id=self._prev_owner,
+                    team_id=player_teams.get(self._prev_owner),
+                )
+            )
 
         self._prev_owner = nearest
         return events
@@ -1523,6 +1530,7 @@ from open_hoops.models import GameEvent
 
 def make_make_event(team_id):
     return GameEvent(type="make", frame=1, timestamp_sec=0.033, team_id=team_id)
+
 
 def make_shot_event(team_id):
     return GameEvent(type="shot", frame=1, timestamp_sec=0.033, team_id=team_id)
@@ -1613,7 +1621,9 @@ from open_hoops.overlay import Overlay
 def test_render_returns_same_shape():
     overlay = Overlay()
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    result = overlay.render(frame, {"team_a": 10, "team_b": 8}, {"team_a": "#ff0000", "team_b": "#0000ff"}, 90, 30.0)
+    result = overlay.render(
+        frame, {"team_a": 10, "team_b": 8}, {"team_a": "#ff0000", "team_b": "#0000ff"}, 90, 30.0
+    )
     assert result.shape == frame.shape
 
 
@@ -1628,7 +1638,9 @@ def test_render_does_not_mutate_input():
 def test_render_modifies_output():
     overlay = Overlay()
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    result = overlay.render(frame, {"team_a": 5, "team_b": 3}, {"team_a": "#ff0000", "team_b": "#0000ff"}, 60, 30.0)
+    result = overlay.render(
+        frame, {"team_a": 5, "team_b": 3}, {"team_a": "#ff0000", "team_b": "#0000ff"}, 60, 30.0
+    )
     assert not np.array_equal(result, frame)
 ```
 
@@ -1749,8 +1761,8 @@ def make_mock_cap(n_frames=10, width=1280, height=720, fps=30.0):
     frames = iter([True] * n_frames + [False])
     cap.read.side_effect = lambda: (next(frames), frame)
     cap.get.side_effect = lambda prop: {
-        0: fps,        # CAP_PROP_FPS
-        7: n_frames,   # CAP_PROP_FRAME_COUNT
+        0: fps,  # CAP_PROP_FPS
+        7: n_frames,  # CAP_PROP_FRAME_COUNT
     }.get(prop, 0)
     cap.isOpened.return_value = True
     return cap
@@ -1810,12 +1822,8 @@ from open_hoops.overlay import Overlay
 
 # NBA half-court corners in pixel space (override via subclass or homography args)
 # Default: assume 1280×720 frame, court fills frame width, hoops at 5% and 95% x
-_DEFAULT_SRC = np.array([
-    [0, 0], [1280, 0], [1280, 720], [0, 720]
-], dtype=np.float32)
-_DEFAULT_DST = np.array([
-    [0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]
-], dtype=np.float32)
+_DEFAULT_SRC = np.array([[0, 0], [1280, 0], [1280, 720], [0, 720]], dtype=np.float32)
+_DEFAULT_DST = np.array([[0, 0], [28.65, 0], [28.65, 15.24], [0, 15.24]], dtype=np.float32)
 
 _BALL_MISSING_WARN_FRAMES = 5 * 30  # 5 seconds at 30 fps
 
@@ -1908,7 +1916,9 @@ class Analyzer:
             poss_events = possession.update(tf, player_teams, frame_idx, fps)
             shot_events = shots.update(tf, player_teams, possession_owner, frame_idx, fps)
             shot_this_frame = any(e.type == "shot" for e in shot_events)
-            pass_events = passes.update(tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame)
+            pass_events = passes.update(
+                tf, player_teams, possession_owner, frame_idx, fps, shot_this_frame
+            )
             movement.update(tf)
             score.update(shot_events)
 
@@ -1920,7 +1930,9 @@ class Analyzer:
                     h, w = frame.shape[:2]
                     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
                     writer = cv2.VideoWriter(self._output_video, fourcc, fps, (w, h))
-                annotated = overlay.render(frame, score.scores, team_clf.team_colors, frame_idx, fps)
+                annotated = overlay.render(
+                    frame, score.scores, team_clf.team_colors, frame_idx, fps
+                )
                 writer.write(annotated)
 
             frame_idx += 1
@@ -1930,7 +1942,15 @@ class Analyzer:
             writer.release()
 
         return self._build_stats(
-            fps, frame_idx, player_teams, player_ident, movement, possession, score, team_clf, all_events
+            fps,
+            frame_idx,
+            player_teams,
+            player_ident,
+            movement,
+            possession,
+            score,
+            team_clf,
+            all_events,
         )
 
     def _build_stats(
@@ -2009,6 +2029,7 @@ class Analyzer:
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
     import math
+
     return math.hypot(a[0] - b[0], a[1] - b[1])
 ```
 
@@ -2093,6 +2114,7 @@ stats = analyze("game.mp4", output_video="game_scored.mp4")
 
 # Export to JSON
 import json
+
 with open("stats.json", "w") as f:
     json.dump(stats.model_dump(), f, indent=2)
 ```

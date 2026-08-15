@@ -1,7 +1,10 @@
 from __future__ import annotations
-import numpy as np
-import cv2
+
 from dataclasses import dataclass, field
+
+import cv2
+import numpy as np
+
 from open_hoops.detector import FrameDetections
 
 

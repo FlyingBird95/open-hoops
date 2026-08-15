@@ -1,15 +1,16 @@
 """Pass one: detect and track players, collecting appearance data per track."""
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
 
 from open_hoops.detector import Detector
-from open_hoops.tracker import Tracker, TrackedFrame, compute_homography
-from open_hoops.identity.team import _torso_crop, _hsv_histogram
 from open_hoops.identity.player import PlayerIdentifier
+from open_hoops.identity.team import _hsv_histogram, _torso_crop
+from open_hoops.tracker import TrackedFrame, Tracker, compute_homography
 
 
 @dataclass

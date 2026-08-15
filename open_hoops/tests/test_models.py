@@ -1,5 +1,6 @@
 import json
-from open_hoops.models import GameStats, PlayerStats, GameEvent, Video
+
+from open_hoops.models import GameEvent, GameStats, PlayerStats, Video
 
 
 def test_video_model():
