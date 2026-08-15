@@ -1,10 +1,10 @@
-import pytest
 from open_hoops.stats.score import ScoreTracker
 from open_hoops.models import GameEvent
 
 
 def make_make_event(team_id):
     return GameEvent(type="make", frame=1, timestamp_sec=0.033, team_id=team_id)
+
 
 def make_shot_event(team_id):
     return GameEvent(type="shot", frame=1, timestamp_sec=0.033, team_id=team_id)

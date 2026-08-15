@@ -1,5 +1,4 @@
-import pytest
-from open_hoops.tracker import TrackedFrame, TrackedPlayer
+from open_hoops.tracker import TrackedFrame
 from open_hoops.stats.shots import ShotDetector
 
 

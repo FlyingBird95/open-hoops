@@ -36,31 +36,37 @@ class ShotDetector:
             now_in = dist <= self._radius
 
             if now_in and not was_in:
-                events.append(GameEvent(
-                    type="shot",
-                    frame=frame_idx,
-                    timestamp_sec=frame_idx / fps,
-                    player_id=possession_owner,
-                    team_id=team_id,
-                ))
+                events.append(
+                    GameEvent(
+                        type="shot",
+                        frame=frame_idx,
+                        timestamp_sec=frame_idx / fps,
+                        player_id=possession_owner,
+                        team_id=team_id,
+                    )
+                )
                 self._made[idx] = False
             if dist <= _MAKE_RADIUS and was_in and not self._made.get(idx, False):
-                events.append(GameEvent(
-                    type="make",
-                    frame=frame_idx,
-                    timestamp_sec=frame_idx / fps,
-                    player_id=possession_owner,
-                    team_id=team_id,
-                ))
+                events.append(
+                    GameEvent(
+                        type="make",
+                        frame=frame_idx,
+                        timestamp_sec=frame_idx / fps,
+                        player_id=possession_owner,
+                        team_id=team_id,
+                    )
+                )
                 self._made[idx] = True
             elif not now_in and was_in and not self._made.get(idx, False):
-                events.append(GameEvent(
-                    type="miss",
-                    frame=frame_idx,
-                    timestamp_sec=frame_idx / fps,
-                    player_id=possession_owner,
-                    team_id=team_id,
-                ))
+                events.append(
+                    GameEvent(
+                        type="miss",
+                        frame=frame_idx,
+                        timestamp_sec=frame_idx / fps,
+                        player_id=possession_owner,
+                        team_id=team_id,
+                    )
+                )
 
             if not now_in:
                 self._made[idx] = False

@@ -1,4 +1,5 @@
 """Movement tracking for basketball players."""
+
 from __future__ import annotations
 import math
 from open_hoops.tracker import TrackedFrame
@@ -28,8 +29,8 @@ class MovementTracker:
             pos = player.court_pos
             self._positions.setdefault(tid, []).append(pos)
             if tid in self._last_pos:
-                self._distances[tid] = (
-                    self._distances.get(tid, 0.0) + _dist(self._last_pos[tid], pos)
+                self._distances[tid] = self._distances.get(tid, 0.0) + _dist(
+                    self._last_pos[tid], pos
                 )
             self._last_pos[tid] = pos
 

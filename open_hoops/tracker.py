@@ -25,9 +25,7 @@ def compute_homography(src_pts: np.ndarray, dst_pts: np.ndarray) -> np.ndarray:
     return H
 
 
-def _pixel_to_court(
-    px: float, py: float, H: np.ndarray
-) -> tuple[float, float]:
+def _pixel_to_court(px: float, py: float, H: np.ndarray) -> tuple[float, float]:
     pt = np.array([[[px, py]]], dtype=np.float32)
     transformed = cv2.perspectiveTransform(pt, H)
     x, y = transformed[0][0]
