@@ -45,9 +45,11 @@ frontend/      — React + TypeScript + Vite dashboard
 
 ### Frontend
 
-- React 18, TypeScript, Vite, React Router, TanStack Query.
+- React 19, TypeScript 6, Vite 8, React Router, TanStack Query.
 - shadcn/ui (Tailwind-based components).
-- Pages: My Team, Opponents, Videos (upload + list + detail).
+- Pages: My Team, Opponents, Games (upload + list + detail).
+- Testing: Vitest + React Testing Library. Run with `npm test`.
+- API responses use JSON:API format. Helpers in `src/lib/api.ts` unwrap responses.
 
 ### Player API
 
