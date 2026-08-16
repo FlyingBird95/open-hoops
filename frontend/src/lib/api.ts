@@ -114,6 +114,7 @@ export interface GameEventData {
   team_uid?: string;
   player_uid?: string;
   bbox?: BBox | null;
+  source: "analysis" | "manual";
 }
 
 export interface GameFileData {
@@ -233,5 +234,20 @@ export const gamesApi = {
       team_uid: r.relationships?.team?.data?.uid,
       player_uid: r.relationships?.player?.data?.uid,
     })) as unknown as GameEventData[];
+  },
+  createEvent: async (gameUid: string, attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string }): Promise<GameEventData> => {
+    const { data } = await client.post(`/games/${gameUid}/events`, {
+      data: { type: "game_events", attributes: attrs },
+    });
+    const r = data.data as ResourceObject<Record<string, unknown>>;
+    return {
+      uid: r.uid,
+      ...r.attributes,
+      team_uid: r.relationships?.team?.data?.uid,
+      player_uid: r.relationships?.player?.data?.uid,
+    } as unknown as GameEventData;
+  },
+  deleteEvent: async (gameUid: string, eventId: string): Promise<void> => {
+    await client.delete(`/games/${gameUid}/events/${eventId}`);
   },
 };

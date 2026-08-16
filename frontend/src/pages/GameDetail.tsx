@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { gamesApi, teamsApi } from "../lib/api";
+import { gamesApi, teamsApi, playersApi } from "../lib/api";
 import type { Game, GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Archive, ArchiveRestore, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Archive, ArchiveRestore, Eye, Plus, Trash2 } from "lucide-react";
 import { ScoreCard } from "@/components/viz/score-card";
 import { StatBar } from "@/components/viz/stat-bar";
 import { DonutChart } from "@/components/viz/donut-chart";
@@ -48,6 +49,7 @@ export default function GameDetail() {
   });
 
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
+  const currentTimeRef = useRef<() => number>(() => 0);
 
   const queryClient = useQueryClient();
 
@@ -108,7 +110,7 @@ export default function GameDetail() {
         Duration: {(game.duration_seconds / 60).toFixed(1)} min | FPS: {game.fps.toFixed(0)}
       </p>
 
-      {gameFiles && gameFiles.length > 0 && <VideoPlayer files={gameFiles} seekTarget={seekTarget} onSeeked={() => setSeekTarget(null)} />}
+      {gameFiles && gameFiles.length > 0 && <VideoPlayer files={gameFiles} seekTarget={seekTarget} onSeeked={() => setSeekTarget(null)} onTimeRef={currentTimeRef} />}
       {stats && (() => {
         const ownStats = stats.team_stats.find(ts => ts.team_uid === game.own_team_uid);
         const oppStats = stats.team_stats.find(ts => ts.team_uid !== game.own_team_uid);
@@ -128,7 +130,7 @@ export default function GameDetail() {
         );
       })()}
       {stats && <PlayerStatsTable stats={stats} game={game} teamNameByUid={teamNameByUid} />}
-      {events && <EventTimeline events={events} game={game} teamNameByUid={teamNameByUid} playerNameByUid={stats ? Object.fromEntries(stats.player_stats.filter(p => p.player_uid).map(p => [p.player_uid!, `#${p.jersey_number}`])) : {}} onEventClick={(ts) => setSeekTarget(ts)} />}
+      {events && <EventTimeline events={events} game={game} teamNameByUid={teamNameByUid} playerNameByUid={stats ? Object.fromEntries(stats.player_stats.filter(p => p.player_uid).map(p => [p.player_uid!, `#${p.jersey_number}`])) : {}} onEventClick={(ts) => setSeekTarget(ts)} getCurrentTime={() => currentTimeRef.current()} />}
     </div>
   );
 }
@@ -202,7 +204,7 @@ function PlayerStatsTable({ stats, game, teamNameByUid }: { stats: GameStatsResp
   );
 }
 
-function VideoPlayer({ files, seekTarget, onSeeked }: { files: GameFileData[]; seekTarget: number | null; onSeeked: () => void }) {
+function VideoPlayer({ files, seekTarget, onSeeked, onTimeRef }: { files: GameFileData[]; seekTarget: number | null; onSeeked: () => void; onTimeRef: React.MutableRefObject<() => number> }) {
   const sorted = [...files].sort((a, b) => a.position - b.position);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [durations, setDurations] = useState<number[]>([]);
@@ -215,6 +217,14 @@ function VideoPlayer({ files, seekTarget, onSeeked }: { files: GameFileData[]; s
       return next;
     });
   }, []);
+
+  onTimeRef.current = () => {
+    const video = videoRefs.current[activeIndex];
+    if (!video) return 0;
+    let cumulative = 0;
+    for (let i = 0; i < activeIndex; i++) cumulative += durations[i] || 0;
+    return cumulative + video.currentTime;
+  };
 
   useEffect(() => {
     if (seekTarget === null) return;
@@ -277,21 +287,84 @@ function VideoPlayer({ files, seekTarget, onSeeked }: { files: GameFileData[]; s
   );
 }
 
-function EventTimeline({ events, game, teamNameByUid, playerNameByUid, onEventClick }: { events: GameEventData[]; game: Game; teamNameByUid: Record<string, string>; playerNameByUid: Record<string, string>; onEventClick: (timestampSec: number) => void }) {
+const EVENT_TYPES = ["shot", "make", "miss", "pass", "possession_change"] as const;
+
+function EventTimeline({ events, game, teamNameByUid, playerNameByUid, onEventClick, getCurrentTime }: { events: GameEventData[]; game: Game; teamNameByUid: Record<string, string>; playerNameByUid: Record<string, string>; onEventClick: (timestampSec: number) => void; getCurrentTime: () => number }) {
   const [frameEvent, setFrameEvent] = useState<GameEventData | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addTimestamp, setAddTimestamp] = useState(0);
+  const [addType, setAddType] = useState<string>("shot");
+  const [addTeamUid, setAddTeamUid] = useState<string>("");
+  const [addPlayerUid, setAddPlayerUid] = useState<string>("");
+  const queryClient = useQueryClient();
+
+  const { data: ownPlayers } = useQuery({
+    queryKey: ["players", game.own_team_uid],
+    queryFn: () => playersApi.list(game.own_team_uid),
+  });
+  const { data: oppPlayers } = useQuery({
+    queryKey: ["players", game.opponent_team_uid],
+    queryFn: () => playersApi.list(game.opponent_team_uid),
+  });
+
+  const allPlayers = [...(ownPlayers || []), ...(oppPlayers || [])];
+  const filteredPlayers = addTeamUid ? allPlayers.filter(p => p.team_uid === addTeamUid) : allPlayers;
+
+  const createMutation = useMutation({
+    mutationFn: (attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string }) =>
+      gamesApi.createEvent(game.uid, attrs),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["game-events", game.uid] });
+      toast("Event added");
+      setShowAddDialog(false);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (eventId: string) => gamesApi.deleteEvent(game.uid, eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["game-events", game.uid] });
+      toast("Event removed");
+    },
+  });
+
+  const handleOpenAdd = () => {
+    const t = getCurrentTime();
+    setAddTimestamp(t);
+    setAddType("shot");
+    setAddTeamUid("");
+    setAddPlayerUid("");
+    setShowAddDialog(true);
+  };
+
+  const handleSubmitAdd = () => {
+    const frame = Math.round(addTimestamp * (game.fps || 30));
+    createMutation.mutate({
+      type: addType,
+      timestamp_sec: addTimestamp,
+      frame,
+      ...(addTeamUid ? { team_uid: addTeamUid } : {}),
+      ...(addPlayerUid ? { player_uid: addPlayerUid } : {}),
+    });
+  };
 
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Events ({events.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Events ({events.length})</CardTitle>
+            <Button size="sm" variant="outline" onClick={handleOpenAdd}>
+              <Plus className="h-4 w-4 mr-1" /> Add Event
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-h-96 overflow-y-auto space-y-1">
             {events.map((e) => (
               <div
                 key={e.uid}
-                className="flex items-center gap-4 text-sm py-1 border-b cursor-pointer hover:bg-muted/50 rounded px-1 border-l-2"
+                className="group flex items-center gap-4 text-sm py-1 border-b cursor-pointer hover:bg-muted/50 rounded px-1 border-l-2"
                 style={{ borderLeftColor: e.team_uid === game.own_team_uid ? game.own_team_color : game.opponent_team_color }}
                 onClick={() => onEventClick(e.timestamp_sec)}
               >
@@ -299,20 +372,79 @@ function EventTimeline({ events, game, teamNameByUid, playerNameByUid, onEventCl
                 <Badge variant="outline">{e.type}</Badge>
                 {e.team_uid && <span className="text-xs text-muted-foreground">{teamNameByUid[e.team_uid] || "Unknown"}</span>}
                 {e.player_uid && <span className="text-xs font-medium">{playerNameByUid[e.player_uid] || "?"}</span>}
-                {e.bbox && (
+                {e.source === "manual" && <Badge variant="secondary" className="text-[10px] px-1 py-0">manual</Badge>}
+                <span className="ml-auto flex items-center gap-1">
+                  {e.bbox && (
+                    <button
+                      className="p-1 rounded hover:bg-muted"
+                      title="View detection frame"
+                      onClick={(ev) => { ev.stopPropagation(); setFrameEvent(e); }}
+                    >
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
                   <button
-                    className="ml-auto p-1 rounded hover:bg-muted"
-                    title="View detection frame"
-                    onClick={(ev) => { ev.stopPropagation(); setFrameEvent(e); }}
+                    className="p-1 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove event"
+                    onClick={(ev) => { ev.stopPropagation(); deleteMutation.mutate(e.uid); }}
                   >
-                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </button>
-                )}
+                </span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Event</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Timestamp</label>
+              <p className="text-muted-foreground text-sm">{addTimestamp.toFixed(2)}s</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Type</label>
+              <Select value={addType} onValueChange={setAddType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EVENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Team (optional)</label>
+              <Select value={addTeamUid} onValueChange={(v) => { setAddTeamUid(v); setAddPlayerUid(""); }}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={game.own_team_uid}>{teamNameByUid[game.own_team_uid] || "Own Team"}</SelectItem>
+                  <SelectItem value={game.opponent_team_uid}>{teamNameByUid[game.opponent_team_uid] || "Opponent"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {addTeamUid && filteredPlayers.length > 0 && (
+              <div>
+                <label className="text-sm font-medium">Player (optional)</label>
+                <Select value={addPlayerUid} onValueChange={setAddPlayerUid}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    {filteredPlayers.map(p => (
+                      <SelectItem key={p.uid} value={p.uid}>#{p.jersey_number}{p.name ? ` ${p.name}` : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button onClick={handleSubmitAdd} disabled={createMutation.isPending} className="w-full">
+              Add Event
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!frameEvent} onOpenChange={(open) => { if (!open) setFrameEvent(null); }}>
         <DialogContent className="max-w-4xl">

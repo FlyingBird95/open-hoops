@@ -101,6 +101,7 @@ def serialize_event(ev: GameEvent) -> dict:
             "frame": ev.frame,
             "timestamp_sec": ev.timestamp_sec,
             "bbox": bbox,
+            "source": ev.source.value if ev.source else "analysis",
         },
         relationships=rels,
     )

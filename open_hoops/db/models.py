@@ -25,6 +25,11 @@ class GameStatus(str, enum.Enum):
     failed = "failed"
 
 
+class EventSource(str, enum.Enum):
+    analysis = "analysis"
+    manual = "manual"
+
+
 def generate_uid() -> str:
     return uuid.uuid4().hex
 
@@ -206,6 +211,10 @@ class GameEvent(Base):
     team_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
     team: Mapped["Team | None"] = relationship()
     """The team involved in this event (if applicable)."""
+
+    source: Mapped[EventSource] = mapped_column(
+        Enum(EventSource), default=EventSource.analysis, server_default="analysis"
+    )
 
     bbox_x1: Mapped[int | None] = mapped_column(Integer, nullable=True)
     bbox_y1: Mapped[int | None] = mapped_column(Integer, nullable=True)

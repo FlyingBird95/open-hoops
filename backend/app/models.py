@@ -1,5 +1,6 @@
 from open_hoops.db import (
     Base,
+    EventSource,
     Game,
     GameEvent,
     GameFile,
@@ -13,6 +14,7 @@ from open_hoops.db import (
 
 __all__ = [
     "Base",
+    "EventSource",
     "Game",
     "GameEvent",
     "GameFile",
