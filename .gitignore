@@ -231,3 +231,4 @@ uploads/
 # Training artifacts
 open_hoops/training/datasets/
 runs/
+.worktrees/
