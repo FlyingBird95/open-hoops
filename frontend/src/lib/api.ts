@@ -113,6 +113,7 @@ export interface GameEventData {
   timestamp_sec: number;
   team_uid?: string;
   player_uid?: string;
+  player2_uid?: string;
   bbox?: BBox | null;
   source: "analysis" | "manual";
 }
@@ -233,9 +234,10 @@ export const gamesApi = {
       ...r.attributes,
       team_uid: r.relationships?.team?.data?.uid,
       player_uid: r.relationships?.player?.data?.uid,
+      player2_uid: r.relationships?.player2?.data?.uid,
     })) as unknown as GameEventData[];
   },
-  createEvent: async (gameUid: string, attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string }): Promise<GameEventData> => {
+  createEvent: async (gameUid: string, attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string; player2_uid?: string }): Promise<GameEventData> => {
     const { data } = await client.post(`/games/${gameUid}/events`, {
       data: { type: "game_events", attributes: attrs },
     });
@@ -245,6 +247,20 @@ export const gamesApi = {
       ...r.attributes,
       team_uid: r.relationships?.team?.data?.uid,
       player_uid: r.relationships?.player?.data?.uid,
+      player2_uid: r.relationships?.player2?.data?.uid,
+    } as unknown as GameEventData;
+  },
+  updateEvent: async (gameUid: string, eventId: string, attrs: { type?: string; team_uid?: string | null; player_uid?: string | null; player2_uid?: string | null }): Promise<GameEventData> => {
+    const { data } = await client.patch(`/games/${gameUid}/events/${eventId}`, {
+      data: { type: "game_events", attributes: attrs },
+    });
+    const r = data.data as ResourceObject<Record<string, unknown>>;
+    return {
+      uid: r.uid,
+      ...r.attributes,
+      team_uid: r.relationships?.team?.data?.uid,
+      player_uid: r.relationships?.player?.data?.uid,
+      player2_uid: r.relationships?.player2?.data?.uid,
     } as unknown as GameEventData;
   },
   deleteEvent: async (gameUid: string, eventId: string): Promise<void> => {

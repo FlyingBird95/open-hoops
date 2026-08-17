@@ -205,8 +205,12 @@ class GameEvent(Base):
     """The game this event occurred in."""
 
     player_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("players.id"), nullable=True)
-    player: Mapped["Player | None"] = relationship()
-    """The player involved in this event (if applicable)."""
+    player: Mapped["Player | None"] = relationship(foreign_keys=[player_id])
+    """Primary player: passer, shooter, fouler, etc."""
+
+    player2_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("players.id"), nullable=True)
+    player2: Mapped["Player | None"] = relationship(foreign_keys=[player2_id])
+    """Secondary player: pass receiver, assist recipient, etc."""
 
     team_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
     team: Mapped["Team | None"] = relationship()

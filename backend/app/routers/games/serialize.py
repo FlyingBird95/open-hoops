@@ -88,6 +88,8 @@ def serialize_event(ev: GameEvent) -> dict:
         rels["team"] = relationship_linkage("teams", ev.team.uid)
     if ev.player:
         rels["player"] = relationship_linkage("players", ev.player.uid)
+    if ev.player2:
+        rels["player2"] = relationship_linkage("players", ev.player2.uid)
 
     bbox = None
     if ev.bbox_x1 is not None:

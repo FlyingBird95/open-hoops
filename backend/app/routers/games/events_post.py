@@ -8,7 +8,20 @@ from app.models import EventSource, Game, GameEvent, Player, Team
 
 from .serialize import serialize_event
 
-EVENT_TYPES = {"shot", "make", "miss", "pass", "possession_change"}
+EVENT_TYPES = {
+    "shot",
+    "make",
+    "miss",
+    "pass",
+    "rebound",
+    "turnover",
+    "steal",
+    "block",
+    "foul",
+    "assist",
+    "substitution",
+    "possession_change",
+}
 
 
 class EventCreateAttributes(BaseModel):
@@ -17,6 +30,7 @@ class EventCreateAttributes(BaseModel):
     frame: int
     team_uid: str | None = None
     player_uid: str | None = None
+    player2_uid: str | None = None
 
 
 class EventCreateData(BaseModel):
@@ -51,6 +65,13 @@ def create_event(uid: str, body: EventCreateRequest, db: Session = Depends(get_d
             raise HTTPException(422, "Player not found")
         player_id = player.id
 
+    player2_id = None
+    if attrs.player2_uid:
+        player2 = db.query(Player).filter(Player.uid == attrs.player2_uid).first()
+        if not player2:
+            raise HTTPException(422, "Player2 not found")
+        player2_id = player2.id
+
     event = GameEvent(
         game_id=game.id,
         type=attrs.type,
@@ -58,6 +79,7 @@ def create_event(uid: str, body: EventCreateRequest, db: Session = Depends(get_d
         timestamp_sec=attrs.timestamp_sec,
         team_id=team_id,
         player_id=player_id,
+        player2_id=player2_id,
         source=EventSource.manual,
     )
     db.add(event)
