@@ -10,7 +10,8 @@ from app.celery_app import celery as celery_app
 from app.config import settings
 from app.database import get_db
 from app.jsonapi import document
-from app.models import Game, GameFile, Team, generate_uid
+from open_hoops.service.game.models import Game, GameFile
+from open_hoops.service.team.models import Team, generate_uid
 
 from .serialize import serialize_game
 

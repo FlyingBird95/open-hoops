@@ -17,10 +17,6 @@ def relationship_linkage(type: str, uid: str) -> dict[str, Any]:
     return {"data": {"type": type, "uid": uid}}
 
 
-def null_relationship() -> dict[str, Any]:
-    return {"data": None}
-
-
 def document(data: dict | list, meta: dict[str, Any] | None = None) -> dict[str, Any]:
     doc: dict[str, Any] = {"data": data, "jsonapi": {"version": "1.1"}}
     if meta:

@@ -4,6 +4,7 @@ from sqlalchemy import Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.core.database import Base
+from open_hoops.service.team.models import generate_uid
 
 
 class EventSource(str, enum.Enum):
@@ -15,6 +16,7 @@ class GameEvent(Base):
     __tablename__ = "game_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    uid: Mapped[str] = mapped_column(String(32), unique=True, default=generate_uid)
     type: Mapped[str] = mapped_column(String(50))
     frame: Mapped[int] = mapped_column(Integer)
 

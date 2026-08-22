@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.jsonapi import document
-from app.models import Game
+from open_hoops.service.game.models import Game
 
 from .serialize import serialize_game
 

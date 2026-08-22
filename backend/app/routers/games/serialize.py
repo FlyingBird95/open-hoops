@@ -1,7 +1,9 @@
 import os
 
 from app.jsonapi import relationship_linkage, resource_object
-from app.models import Game, GameEvent, GameFile, GamePlayerStats, GameTeamStats
+from open_hoops.service.event.models import GameEvent
+from open_hoops.service.game.models import Game, GameFile
+from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 
 
 def serialize_game(game: Game) -> dict:
@@ -46,7 +48,7 @@ def serialize_game_file(gf: GameFile) -> dict:
 def serialize_team_stats(ts: GameTeamStats) -> dict:
     return resource_object(
         type="game_team_stats",
-        uid=str(ts.id),
+        uid=ts.uid,
         attributes={
             "score": ts.score,
             "possession_pct": ts.possession_pct,
@@ -68,7 +70,7 @@ def serialize_player_stats(ps: GamePlayerStats) -> dict:
 
     return resource_object(
         type="game_player_stats",
-        uid=str(ps.id),
+        uid=ps.uid,
         attributes={
             "jersey_number": ps.jersey_number,
             "distance_covered_m": ps.distance_covered_m,
@@ -97,7 +99,7 @@ def serialize_event(ev: GameEvent) -> dict:
 
     return resource_object(
         type="game_events",
-        uid=str(ev.id),
+        uid=ev.uid,
         attributes={
             "type": ev.type,
             "frame": ev.frame,

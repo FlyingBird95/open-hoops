@@ -16,7 +16,7 @@ def test_video_construction():
 
 
 def test_open_hoop_construction():
-    hoops = OpenHoop(Video("game.mp4"))
+    hoops = OpenHoop(Video(path="game.mp4"))
     assert hoops is not None
 
 
@@ -25,5 +25,5 @@ def test_open_hoop_with_roster():
         home=TeamRoster(color="#ffffff", players=[3, 11, 23]),
         away=TeamRoster(color="#0000ff", players=[5, 10, 15]),
     )
-    hoops = OpenHoop(Video("game.mp4"), roster=roster)
+    hoops = OpenHoop(Video(path="game.mp4"), roster=roster)
     assert hoops._roster is roster

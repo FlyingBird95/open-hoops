@@ -89,7 +89,7 @@ def run_pass_one(
                     profile.histograms.append(_hsv_histogram(crop))
 
             if frame_idx % _OCR_INTERVAL == 0:
-                number = player_ident._run_ocr(frame, p.bbox)
+                number = player_ident.run_ocr(frame, p.bbox)
                 if number is not None:
                     profile.ocr_readings.append(number)
                     area = (p.bbox[2] - p.bbox[0]) * (p.bbox[3] - p.bbox[1])

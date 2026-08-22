@@ -1,15 +1,13 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, get_or_404
 from app.jsonapi import document
-from app.models import Team
+from open_hoops.service.team.models import Team
 
 from .serialize import serialize_team
 
 
 def get_team(uid: str, db: Session = Depends(get_db)):
-    team = db.query(Team).filter(Team.uid == uid).first()
-    if not team:
-        raise HTTPException(404, "Team not found")
+    team = get_or_404(db, Team, uid)
     return document(data=serialize_team(team))

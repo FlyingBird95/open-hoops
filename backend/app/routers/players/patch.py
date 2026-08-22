@@ -1,21 +1,32 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, get_or_404
 from app.jsonapi import document
-from app.models import Player
+from open_hoops.service.player.models import Player
 
 from .serialize import serialize_player
 
 
-def update_player(uid: str, body: dict, db: Session = Depends(get_db)):
-    player = db.query(Player).filter(Player.uid == uid).first()
-    if not player:
-        raise HTTPException(404, "Player not found")
-    attrs = body["data"]["attributes"]
-    for key, value in attrs.items():
-        if hasattr(player, key) and key not in ("uid", "id", "team_id"):
-            setattr(player, key, value)
+class PlayerPatchAttributes(BaseModel):
+    jersey_number: int | None = None
+    name: str | None = None
+
+
+class PlayerPatchData(BaseModel):
+    type: str = "players"
+    attributes: PlayerPatchAttributes
+
+
+class PlayerPatchRequest(BaseModel):
+    data: PlayerPatchData
+
+
+def update_player(uid: str, body: PlayerPatchRequest, db: Session = Depends(get_db)):
+    player = get_or_404(db, Player, uid)
+    for key, value in body.data.attributes.model_dump(exclude_unset=True).items():
+        setattr(player, key, value)
     db.commit()
     db.refresh(player)
     return document(data=serialize_player(player))

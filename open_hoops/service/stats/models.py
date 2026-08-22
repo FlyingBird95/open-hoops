@@ -1,13 +1,15 @@
-from sqlalchemy import Float, ForeignKey, Integer
+from sqlalchemy import Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.core.database import Base
+from open_hoops.service.team.models import generate_uid
 
 
 class GameTeamStats(Base):
     __tablename__ = "game_team_stats"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    uid: Mapped[str] = mapped_column(String(32), unique=True, default=generate_uid)
     score: Mapped[int] = mapped_column(Integer, default=0)
 
     possession_pct: Mapped[float] = mapped_column(Float, default=0.0)
@@ -26,6 +28,7 @@ class GamePlayerStats(Base):
     __tablename__ = "game_player_stats"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    uid: Mapped[str] = mapped_column(String(32), unique=True, default=generate_uid)
     jersey_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     distance_covered_m: Mapped[float] = mapped_column(Float, default=0.0)

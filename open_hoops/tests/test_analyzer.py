@@ -23,14 +23,14 @@ def _make_pass_one_result(n_frames=10, fps=30.0):
 @patch("open_hoops.analyzer.run_pass_one")
 def test_invalid_video_path_still_works(mock_p1):
     mock_p1.return_value = _make_pass_one_result()
-    stats = OpenHoop(Video("nonexistent.mp4")).extract_stats()
+    stats = OpenHoop(Video(path="nonexistent.mp4")).extract_stats()
     assert isinstance(stats, GameStats)
 
 
 @patch("open_hoops.analyzer.run_pass_one")
 def test_extract_stats_returns_game_stats(mock_p1):
     mock_p1.return_value = _make_pass_one_result(n_frames=5)
-    stats = OpenHoop(Video("fake.mp4")).extract_stats()
+    stats = OpenHoop(Video(path="fake.mp4")).extract_stats()
     assert isinstance(stats, GameStats)
     assert stats.video.path == "fake.mp4"
 
@@ -38,7 +38,7 @@ def test_extract_stats_returns_game_stats(mock_p1):
 @patch("open_hoops.analyzer.run_pass_one")
 def test_extract_stats_crosses_warmup_boundary(mock_p1):
     mock_p1.return_value = _make_pass_one_result(n_frames=35)
-    stats = OpenHoop(Video("fake.mp4")).extract_stats()
+    stats = OpenHoop(Video(path="fake.mp4")).extract_stats()
     assert isinstance(stats, GameStats)
     assert stats.fps == 30.0
     assert abs(stats.duration_seconds - 35 / 30.0) < 0.01
@@ -47,7 +47,7 @@ def test_extract_stats_crosses_warmup_boundary(mock_p1):
 @patch("open_hoops.analyzer.run_pass_one")
 def test_ball_missing_completes(mock_p1):
     mock_p1.return_value = _make_pass_one_result(n_frames=160)
-    stats = OpenHoop(Video("fake.mp4")).extract_stats()
+    stats = OpenHoop(Video(path="fake.mp4")).extract_stats()
     assert isinstance(stats, GameStats)
 
 
@@ -78,7 +78,7 @@ def test_edit_overlay_returns_video():
             events=[],
         )
 
-        hoops = OpenHoop(Video("fake.mp4"))
+        hoops = OpenHoop(Video(path="fake.mp4"))
         result = hoops.edit_overlay(fake_stats, "out.mp4")
         assert isinstance(result, Video)
         assert result.path == "out.mp4"
@@ -96,7 +96,7 @@ def test_edit_overlay_raises_on_invalid_video():
             fps=30.0,
         )
         with pytest.raises(ValueError, match="Cannot open video"):
-            OpenHoop(Video("bad.mp4")).edit_overlay(fake_stats, "out.mp4")
+            OpenHoop(Video(path="bad.mp4")).edit_overlay(fake_stats, "out.mp4")
 
 
 @patch("open_hoops.analyzer.run_pass_one")
