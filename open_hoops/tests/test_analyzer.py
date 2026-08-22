@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from open_hoops.analyzer import OpenHoop
-from open_hoops.models import GameStats, Roster, TeamRoster, TeamStats, Video
+from open_hoops.models import AnalysisResult, AnalyzedTeamStats, Roster, TeamRoster, Video
 from open_hoops.pass_one import PassOneResult, TrackProfile
 from open_hoops.tracker import TrackedFrame
 
@@ -23,14 +23,14 @@ def _make_pass_one_result(n_frames=10, fps=30.0):
 def test_invalid_video_path_still_works(mock_p1):
     mock_p1.return_value = _make_pass_one_result()
     stats = OpenHoop(Video(path="nonexistent.mp4")).extract_stats()
-    assert isinstance(stats, GameStats)
+    assert isinstance(stats, AnalysisResult)
 
 
 @patch("open_hoops.analyzer.run_pass_one")
 def test_extract_stats_returns_game_stats(mock_p1):
     mock_p1.return_value = _make_pass_one_result(n_frames=5)
     stats = OpenHoop(Video(path="fake.mp4")).extract_stats()
-    assert isinstance(stats, GameStats)
+    assert isinstance(stats, AnalysisResult)
     assert stats.video.path == "fake.mp4"
 
 
@@ -38,7 +38,7 @@ def test_extract_stats_returns_game_stats(mock_p1):
 def test_extract_stats_crosses_warmup_boundary(mock_p1):
     mock_p1.return_value = _make_pass_one_result(n_frames=35)
     stats = OpenHoop(Video(path="fake.mp4")).extract_stats()
-    assert isinstance(stats, GameStats)
+    assert isinstance(stats, AnalysisResult)
     assert stats.fps == 30.0
     assert abs(stats.duration_seconds - 35 / 30.0) < 0.01
 
@@ -47,7 +47,7 @@ def test_extract_stats_crosses_warmup_boundary(mock_p1):
 def test_ball_missing_completes(mock_p1):
     mock_p1.return_value = _make_pass_one_result(n_frames=160)
     stats = OpenHoop(Video(path="fake.mp4")).extract_stats()
-    assert isinstance(stats, GameStats)
+    assert isinstance(stats, AnalysisResult)
 
 
 def test_edit_overlay_returns_video():
@@ -64,13 +64,13 @@ def test_edit_overlay_returns_video():
         mock_writer = MagicMock()
         mock_writer_cls.return_value = mock_writer
 
-        fake_stats = GameStats(
+        fake_stats = AnalysisResult(
             video=Video(path="fake.mp4"),
             duration_seconds=5 / 30.0,
             fps=30.0,
             teams=[
-                TeamStats(team_id="team_a", color="#ff0000", score=4),
-                TeamStats(team_id="team_b", color="#0000ff", score=2),
+                AnalyzedTeamStats(team_id="team_a", color="#ff0000", score=4),
+                AnalyzedTeamStats(team_id="team_b", color="#0000ff", score=2),
             ],
             events=[],
         )
@@ -87,7 +87,7 @@ def test_edit_overlay_raises_on_invalid_video():
         mock_cap.isOpened.return_value = False
         mock_cap_cls.return_value = mock_cap
 
-        fake_stats = GameStats(
+        fake_stats = AnalysisResult(
             video=Video(path="bad.mp4"),
             duration_seconds=1.0,
             fps=30.0,

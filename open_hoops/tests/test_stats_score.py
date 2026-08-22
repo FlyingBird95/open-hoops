@@ -1,13 +1,13 @@
-from open_hoops.models import GameEvent
+from open_hoops.models import AnalyzedEvent
 from open_hoops.stats.score import ScoreTracker
 
 
 def make_make_event(team_id):
-    return GameEvent(type="make", frame=1, timestamp_sec=0.033, team_id=team_id)
+    return AnalyzedEvent(type="make", frame=1, timestamp_sec=0.033, team_id=team_id)
 
 
 def make_shot_event(team_id):
-    return GameEvent(type="shot", frame=1, timestamp_sec=0.033, team_id=team_id)
+    return AnalyzedEvent(type="shot", frame=1, timestamp_sec=0.033, team_id=team_id)
 
 
 def test_score_increments_on_make():

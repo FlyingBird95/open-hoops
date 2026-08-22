@@ -54,7 +54,7 @@ frontend/            — React + TypeScript + Vite dashboard
 - Game references two teams: `home_team_id` (typically own team, prefilled in UI) and `away_team_id` (opponent).
 - Each game also stores `home_team_color` and `away_team_color` (jersey colors worn in that game).
 - Upload triggers Celery task. Status enum: pending → processing → done | failed.
-- Analysis result stored as JSON blob (`GameStats.model_dump()`) in `stats_json` column.
+- Analysis results stored in relational tables: `GameTeamStats`, `GamePlayerStats`, `GameEvent`.
 
 ### Backend
 

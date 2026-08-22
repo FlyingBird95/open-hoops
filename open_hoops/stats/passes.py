@@ -1,6 +1,6 @@
 import math
 
-from open_hoops.models import GameEvent
+from open_hoops.models import AnalyzedEvent
 from open_hoops.tracker import TrackedFrame
 
 
@@ -26,17 +26,17 @@ class PassDetector:
         frame_idx: int,
         fps: float,
         shot_this_frame: bool,
-    ) -> list[GameEvent]:
+    ) -> list[AnalyzedEvent]:
         if tf.ball_pos is None or shot_this_frame:
             self._prev_owner = possession_owner
             return []
 
         nearest = _nearest_player(tf.players, tf.ball_pos)
-        events: list[GameEvent] = []
+        events: list[AnalyzedEvent] = []
 
         if nearest is not None and self._prev_owner is not None and nearest != self._prev_owner:
             events.append(
-                GameEvent(
+                AnalyzedEvent(
                     type="pass",
                     frame=frame_idx,
                     timestamp_sec=frame_idx / fps,

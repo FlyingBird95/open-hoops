@@ -1,6 +1,6 @@
 import math
 
-from open_hoops.models import GameEvent
+from open_hoops.models import AnalyzedEvent
 from open_hoops.tracker import TrackedFrame
 
 _MAKE_RADIUS = 0.15  # ball centre within this of hoop centre = make
@@ -23,11 +23,11 @@ class ShotDetector:
         possession_owner: int | None,
         frame_idx: int,
         fps: float,
-    ) -> list[GameEvent]:
+    ) -> list[AnalyzedEvent]:
         if tf.ball_pos is None or not tf.hoops:
             return []
 
-        events: list[GameEvent] = []
+        events: list[AnalyzedEvent] = []
         team_id = player_teams.get(possession_owner) if possession_owner is not None else None
 
         for idx, hoop in enumerate(tf.hoops):
@@ -37,7 +37,7 @@ class ShotDetector:
 
             if now_in and not was_in:
                 events.append(
-                    GameEvent(
+                    AnalyzedEvent(
                         type="shot",
                         frame=frame_idx,
                         timestamp_sec=frame_idx / fps,
@@ -48,7 +48,7 @@ class ShotDetector:
                 self._made[idx] = False
             if dist <= _MAKE_RADIUS and was_in and not self._made.get(idx, False):
                 events.append(
-                    GameEvent(
+                    AnalyzedEvent(
                         type="make",
                         frame=frame_idx,
                         timestamp_sec=frame_idx / fps,
@@ -59,7 +59,7 @@ class ShotDetector:
                 self._made[idx] = True
             elif not now_in and was_in and not self._made.get(idx, False):
                 events.append(
-                    GameEvent(
+                    AnalyzedEvent(
                         type="miss",
                         frame=frame_idx,
                         timestamp_sec=frame_idx / fps,

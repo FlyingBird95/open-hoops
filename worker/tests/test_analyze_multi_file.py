@@ -2,20 +2,20 @@ from unittest.mock import MagicMock, patch
 
 from sqlalchemy.orm import Session
 
-from open_hoops.models import GameStats, TeamStats, Video
+from open_hoops.models import AnalysisResult, AnalyzedTeamStats, Video
 from open_hoops.service.game.models import Game, GameStatus
 from testhelpers.factories import GameFileFactory
 from worker.tasks import analyze_game
 
 
 def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):
-    return GameStats(
+    return AnalysisResult(
         video=Video(path=path),
         duration_seconds=duration,
         fps=fps,
         teams=[
-            TeamStats(team_id="home", score=10, possession_pct=50.0, players=[]),
-            TeamStats(team_id="away", score=8, possession_pct=50.0, players=[]),
+            AnalyzedTeamStats(team_id="home", score=10, possession_pct=50.0, players=[]),
+            AnalyzedTeamStats(team_id="away", score=8, possession_pct=50.0, players=[]),
         ],
         events=[],
     )

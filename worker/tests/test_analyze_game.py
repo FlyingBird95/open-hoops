@@ -5,8 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sqlalchemy.orm import Session
 
-from open_hoops.models import BBox, GameStats, PlayerStats, TeamStats, Video
-from open_hoops.models import GameEvent as OHGameEvent
+from open_hoops.models import (
+    AnalysisResult,
+    AnalyzedEvent,
+    AnalyzedPlayerStats,
+    AnalyzedTeamStats,
+    BBox,
+    Video,
+)
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameStatus
 from open_hoops.service.player.models import Player
@@ -24,7 +30,7 @@ def make_stats(
     players=None,
 ):
     home_players = players or [
-        PlayerStats(
+        AnalyzedPlayerStats(
             player_id=23,
             team_id="team_a",
             distance_covered_m=1500.0,
@@ -35,15 +41,15 @@ def make_stats(
             possession_frames=200,
         )
     ]
-    return GameStats(
+    return AnalysisResult(
         video=Video(path="uploads/fake.mp4"),
         duration_seconds=duration,
         fps=fps,
         teams=[
-            TeamStats(
+            AnalyzedTeamStats(
                 team_id="team_a", score=home_score, possession_pct=55.0, players=home_players
             ),
-            TeamStats(team_id="team_b", score=away_score, possession_pct=45.0, players=[]),
+            AnalyzedTeamStats(team_id="team_b", score=away_score, possession_pct=45.0, players=[]),
         ],
         events=events or [],
     )
@@ -127,7 +133,7 @@ def test_analyze_writes_player_stats(db: Session, game: Game, player: Player):
 @pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
 def test_analyze_writes_events(db: Session, game: Game, player: Player):
     events = [
-        OHGameEvent(
+        AnalyzedEvent(
             type="shot",
             frame=100,
             timestamp_sec=3.33,
@@ -135,7 +141,7 @@ def test_analyze_writes_events(db: Session, game: Game, player: Player):
             player_id=23,
             bbox=BBox(x1=10, y1=20, x2=50, y2=80),
         ),
-        OHGameEvent(
+        AnalyzedEvent(
             type="pass",
             frame=200,
             timestamp_sec=6.66,

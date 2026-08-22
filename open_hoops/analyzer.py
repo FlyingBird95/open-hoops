@@ -6,13 +6,13 @@ import numpy as np
 from open_hoops.identity.player import finalize_jerseys
 from open_hoops.identity.team import assign_teams_from_profiles
 from open_hoops.models import (
+    AnalysisResult,
+    AnalyzedPlayerStats,
+    AnalyzedTeamStats,
     BBox,
-    GameStats,
-    PlayerStats,
     Point,
     Roster,
     SubstitutionEvent,
-    TeamStats,
     Video,
 )
 from open_hoops.overlay import Overlay
@@ -50,7 +50,7 @@ class OpenHoop:
         self._dst = dst_pts if dst_pts is not None else _DEFAULT_DST
         self._roster = roster
 
-    def extract_stats(self) -> GameStats:
+    def extract_stats(self) -> AnalysisResult:
         """Single-pass detection/tracking/stats pipeline. Returns GameStats."""
         valid_numbers: set[int] | None = None
         if self._roster:
@@ -129,7 +129,7 @@ class OpenHoop:
             all_events,
         )
 
-    def edit_overlay(self, game_stats: GameStats, output_path: str) -> Video:
+    def edit_overlay(self, game_stats: AnalysisResult, output_path: str) -> Video:
         """Render score HUD onto source video. Writes to output_path."""
         cap = cv2.VideoCapture(self._video.path)
         if not cap.isOpened():
@@ -174,21 +174,21 @@ class OpenHoop:
         score: ScoreTracker,
         subs: SubstitutionTracker,
         events: list,
-    ) -> GameStats:
+    ) -> AnalysisResult:
         pct = possession.finalize(total_frames)
 
         team_colors: dict[str, str] = {}
         if self._roster:
             team_colors = {"team_a": self._roster.home.color, "team_b": self._roster.away.color}
 
-        teams: dict[str, TeamStats] = {
-            "team_a": TeamStats(
+        teams: dict[str, AnalyzedTeamStats] = {
+            "team_a": AnalyzedTeamStats(
                 team_id="team_a",
                 color=team_colors.get("team_a", ""),
                 score=score.scores["team_a"],
                 possession_pct=pct.get("team_a", 0.0),
             ),
-            "team_b": TeamStats(
+            "team_b": AnalyzedTeamStats(
                 team_id="team_b",
                 color=team_colors.get("team_b", ""),
                 score=score.scores["team_b"],
@@ -220,7 +220,7 @@ class OpenHoop:
                 continue
             jersey = jersey_assignments.get(tid)
             positions = [Point(x=x, y=y) for x, y in movement.get_positions(tid)]
-            ps = PlayerStats(
+            ps = AnalyzedPlayerStats(
                 player_id=jersey,
                 team_id=team_id,
                 positions=positions,
@@ -246,7 +246,7 @@ class OpenHoop:
                     )
                 )
 
-        return GameStats(
+        return AnalysisResult(
             video=self._video,
             duration_seconds=total_frames / fps if fps > 0 else 0.0,
             fps=fps,
