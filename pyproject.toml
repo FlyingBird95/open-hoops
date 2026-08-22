@@ -29,6 +29,7 @@ extend-exclude = ["backend/alembic", "**/*.md"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/app/routers/**" = ["B008"]
+"backend/app/routers/**/router.py" = ["E402", "F401"]
 "open_hoops/service/**" = ["TC004", "F821"]
 "open_hoops/identity/**" = ["TC004"]
 

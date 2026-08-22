@@ -2,8 +2,8 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.jsonapi import document
+from open_hoops.core.database import get_db
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game
 from open_hoops.service.player.models import Player

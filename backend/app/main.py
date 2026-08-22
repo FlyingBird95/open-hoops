@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from open_hoops.core.database import get_engine, get_session_factory
+
+get_engine(settings.database_url)
+get_session_factory(settings.database_url)
+
 from app.routers.events.router import router as events_router
 from app.routers.games.router import router as games_router
 from app.routers.players.router import router as players_router

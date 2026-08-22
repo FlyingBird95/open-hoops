@@ -3,11 +3,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db, get_or_404
 from app.jsonapi import document
+from open_hoops.core.database import get_db
 from open_hoops.service.player.models import Player
-from open_hoops.service.team.models import Team
 
+from .queries import fetch_team
 from .router import router
 from .serialize import serialize_player
 
@@ -42,7 +42,7 @@ class PlayerCreateRequest(BaseModel):
 
 @router.post("")
 def create_player(body: PlayerCreateRequest, db: Session = Depends(get_db)):
-    team = get_or_404(db, Team, body.data.relationships.team.data.uid)
+    team = fetch_team(db, body.data.relationships.team.data.uid)
     attrs = body.data.attributes
     player = Player(
         team_id=team.id,

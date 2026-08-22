@@ -2,10 +2,10 @@ from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db, get_or_404
 from app.jsonapi import document
-from open_hoops.service.player.models import Player
+from open_hoops.core.database import get_db
 
+from .queries import fetch_player
 from .router import router
 from .serialize import serialize_player
 
@@ -26,7 +26,7 @@ class PlayerPatchRequest(BaseModel):
 
 @router.patch("/{uid}")
 def update_player(uid: str, body: PlayerPatchRequest, db: Session = Depends(get_db)):
-    player = get_or_404(db, Player, uid)
+    player = fetch_player(db, uid)
     for key, value in body.data.attributes.model_dump(exclude_unset=True).items():
         setattr(player, key, value)
     db.commit()

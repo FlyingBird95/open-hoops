@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.jsonapi import document
+from open_hoops.core.database import get_db
 from open_hoops.service.event.models import GameEvent
 from open_hoops.service.game.models import Game
 

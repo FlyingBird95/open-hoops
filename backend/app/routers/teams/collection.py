@@ -1,8 +1,8 @@
 from fastapi import Depends, Query
 from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.jsonapi import document
+from open_hoops.core.database import get_db
 from open_hoops.service.team.models import Team
 
 from .router import router
