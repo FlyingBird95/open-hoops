@@ -2,7 +2,7 @@ import pytest
 from app.main import app
 from fastapi.testclient import TestClient
 
-from open_hoops.db import Base
+from open_hoops.core.database import Base
 from tests.conftest import engine
 
 

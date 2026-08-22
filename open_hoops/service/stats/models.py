@@ -1,16 +1,7 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from sqlalchemy import Float, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from open_hoops.db.base import Base
-
-if TYPE_CHECKING:
-    from open_hoops.db.service.game.models import Game
-    from open_hoops.db.service.player.models import Player
-    from open_hoops.db.service.team.models import Team
+from open_hoops.core.database import Base
 
 
 class GameTeamStats(Base):
@@ -23,11 +14,11 @@ class GameTeamStats(Base):
     """Percentage of total game time this team had possession."""
 
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"))
-    game: Mapped[Game] = relationship(back_populates="team_stats")
+    game: Mapped["Game"] = relationship(back_populates="team_stats")
     """The game these stats belong to."""
 
     team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
-    team: Mapped[Team] = relationship()
+    team: Mapped["Team"] = relationship()
     """The team these stats are for."""
 
 
@@ -49,13 +40,13 @@ class GamePlayerStats(Base):
     """Number of frames this player was nearest to the ball."""
 
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"))
-    game: Mapped[Game] = relationship(back_populates="player_stats")
+    game: Mapped["Game"] = relationship(back_populates="player_stats")
     """The game these stats belong to."""
 
     team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"))
-    team: Mapped[Team] = relationship()
+    team: Mapped["Team"] = relationship()
     """The team this player was on during this game."""
 
     player_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("players.id"), nullable=True)
-    player: Mapped[Player | None] = relationship()
+    player: Mapped["Player | None"] = relationship()
     """The player (if matched to a roster entry)."""

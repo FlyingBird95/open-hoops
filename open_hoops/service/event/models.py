@@ -1,17 +1,9 @@
-from __future__ import annotations
-
 import enum
-from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from open_hoops.db.base import Base
-
-if TYPE_CHECKING:
-    from open_hoops.db.service.game.models import Game
-    from open_hoops.db.service.player.models import Player
-    from open_hoops.db.service.team.models import Team
+from open_hoops.core.database import Base
 
 
 class EventSource(str, enum.Enum):
@@ -30,19 +22,19 @@ class GameEvent(Base):
     """Event time in seconds from video start."""
 
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"))
-    game: Mapped[Game] = relationship(back_populates="events")
+    game: Mapped["Game"] = relationship(back_populates="events")
     """The game this event occurred in."""
 
     player_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("players.id"), nullable=True)
-    player: Mapped[Player | None] = relationship(foreign_keys=[player_id])
+    player: Mapped["Player | None"] = relationship(foreign_keys=[player_id])
     """Primary player: passer, shooter, fouler, etc."""
 
     player2_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("players.id"), nullable=True)
-    player2: Mapped[Player | None] = relationship(foreign_keys=[player2_id])
+    player2: Mapped["Player | None"] = relationship(foreign_keys=[player2_id])
     """Secondary player: pass receiver, assist recipient, etc."""
 
     team_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
-    team: Mapped[Team | None] = relationship()
+    team: Mapped["Team | None"] = relationship()
     """The team involved in this event (if applicable)."""
 
     source: Mapped[EventSource] = mapped_column(

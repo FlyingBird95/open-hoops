@@ -1,15 +1,9 @@
-from __future__ import annotations
-
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from open_hoops.db.base import Base
-
-if TYPE_CHECKING:
-    from open_hoops.db.service.player.models import Player
+from open_hoops.core.database import Base
 
 
 def generate_uid() -> str:
@@ -32,7 +26,7 @@ class Team(Base):
     away_color: Mapped[str] = mapped_column(String(7), default="#ffffff")
     """Secondary/away jersey color as hex."""
 
-    players: Mapped[list[Player]] = relationship(
+    players: Mapped[list["Player"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
     """All players belonging to this team."""

@@ -1,7 +1,5 @@
 """Pass one: detect and track players, collecting appearance data per track."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 
 import cv2

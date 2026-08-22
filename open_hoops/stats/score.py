@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from open_hoops.models import GameEvent
 
 

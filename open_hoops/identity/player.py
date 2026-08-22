@@ -1,7 +1,5 @@
 """PlayerIdentifier — jersey number OCR using EasyOCR."""
 
-from __future__ import annotations
-
 import re
 from typing import TYPE_CHECKING
 
@@ -113,7 +111,7 @@ class PlayerIdentifier:
         return self._majority(track_id)
 
 
-def finalize_jerseys(tracks: dict[int, TrackProfile]) -> None:
+def finalize_jerseys(tracks: dict[int, "TrackProfile"]) -> None:
     """Assign jersey number to each TrackProfile using area-weighted majority vote.
 
     Mutates profile.jersey in place.

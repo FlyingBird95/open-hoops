@@ -1,16 +1,10 @@
 import os
 
-from open_hoops.db import (
-    EventSource,
-    Game,
-    GameEvent,
-    GameFile,
-    GamePlayerStats,
-    GameStatus,
-    GameTeamStats,
-    Player,
-    get_session_factory,
-)
+from open_hoops.core.database import get_session_factory
+from open_hoops.service.event.models import EventSource, GameEvent
+from open_hoops.service.game.models import Game, GameFile, GameStatus
+from open_hoops.service.player.models import Player
+from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 from worker.celery_app import celery
 
 database_url = os.environ.get(

@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-
 def interpolate_ball(
     positions: list[tuple[float, float] | None],
     fps: float,

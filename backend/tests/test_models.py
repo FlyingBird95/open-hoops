@@ -1,6 +1,8 @@
 from datetime import date
 
-from open_hoops.db import Game, GameStatus, Player, Team, generate_uid
+from open_hoops.service.game.models import Game, GameStatus
+from open_hoops.service.player.models import Player
+from open_hoops.service.team.models import Team, generate_uid
 
 
 def test_generate_uid_length():

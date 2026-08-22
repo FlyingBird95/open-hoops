@@ -252,3 +252,190 @@ router.delete("/{uid}")(delete_team)
 - Router serialization converts SQLAlchemy models → JSON:API resource objects.
 - Resource objects use `uid` (not `id`) as identifier field. Internal `id` column never appears in responses.
 - Relationship linkage uses UIDs resolved via the ORM relationship, not raw FK ints.
+
+---
+
+## Testing
+
+Tests use **pytest**, **pytest-factoryboy**, and **factory_boy**. Run with `pytest tests/` from `backend/`.
+
+### Principles
+
+- Use factories and fixtures for test data — never inline SQL or manual object construction.
+- Only mock **external services** (OpenHoop/YOLO, celery, cv2). Never mock DB, internal logic, or API responses.
+- Use type annotations on all fixtures and test function parameters.
+- Prefer parametrize for testing multiple scenarios over duplicating test functions.
+
+### Factory Registration
+
+All factories live in `tests/factories.py`. Register them in `tests/conftest.py` using `pytest_factoryboy.register()`:
+
+```python
+from pytest_factoryboy import register
+from .factories import TeamFactory, PlayerFactory, GameFactory
+
+register(TeamFactory)
+register(PlayerFactory)
+register(GameFactory)
+```
+
+Registration auto-creates fixtures named after the model (lowercase): `team`, `player`, `game`. These fixtures are available in any test function by name.
+
+### Writing a Factory
+
+Each factory extends `factory.alchemy.SQLAlchemyModelFactory`. Set `sqlalchemy_session = None` (wired at runtime via the `db` fixture). Use `sqlalchemy_session_persistence = "commit"`.
+
+```python
+import factory
+from open_hoops.db import Team, generate_uid
+
+class TeamFactory(factory.alchemy.SQLAlchemyModelFactory):
+    class Meta:
+        model = Team
+        sqlalchemy_session = None
+        sqlalchemy_session_persistence = "commit"
+
+    uid = factory.LazyFunction(generate_uid)
+    name = factory.Sequence(lambda n: f"Team {n}")
+    is_own = False
+```
+
+For relationships, use `factory.SubFactory` and a `LazyAttribute` for the FK:
+
+```python
+class PlayerFactory(factory.alchemy.SQLAlchemyModelFactory):
+    class Meta:
+        model = Player
+        sqlalchemy_session = None
+        sqlalchemy_session_persistence = "commit"
+
+    uid = factory.LazyFunction(generate_uid)
+    jersey_number = factory.Sequence(lambda n: n + 1)
+    name = factory.Sequence(lambda n: f"Player {n}")
+    team = factory.SubFactory(TeamFactory)
+    team_id = factory.LazyAttribute(lambda o: o.team.id)
+```
+
+### Using Factories in Tests
+
+Request the `db` fixture to get a session with factories wired up. Then call factories directly:
+
+```python
+from tests.factories import TeamFactory, PlayerFactory
+
+def test_something(db: Session) -> None:
+    team = TeamFactory(name="Lakers", is_own=True)
+    player = PlayerFactory(team=team, jersey_number=23)
+    # team and player are committed to the test DB
+```
+
+Or use registered fixtures for simple cases:
+
+```python
+def test_with_fixture(team: Team) -> None:
+    assert team.uid is not None
+```
+
+### Overriding Factory Defaults with Fixtures
+
+Use `@pytest.fixture` to compose factories for common test scenarios:
+
+```python
+@pytest.fixture
+def game_with_stats(db: Session) -> dict[str, str]:
+    home = TeamFactory(name="Lakers", is_own=True)
+    away = TeamFactory(name="Celtics", is_own=False)
+    game = GameFactory(own_team=home, opponent_team=away)
+    GameTeamStatsFactory(game=game, team=home, score=105)
+    GameTeamStatsFactory(game=game, team=away, score=98)
+    return {"game_uid": game.uid, "home_uid": home.uid, "away_uid": away.uid}
+```
+
+### Parametrize
+
+Use `@pytest.mark.parametrize` to test multiple inputs/outcomes:
+
+```python
+import pytest
+
+@pytest.mark.parametrize(
+    ("event_type", "expected_status"),
+    [
+        ("shot", 200),
+        ("pass", 200),
+        ("dunk", 422),  # invalid type
+    ],
+)
+def test_create_event_type_validation(
+    db: Session, event_type: str, expected_status: int
+) -> None:
+    game = GameFactory()
+    resp = client.post(
+        f"/api/games/{game.uid}/events",
+        json={
+            "data": {
+                "type": "game_events",
+                "attributes": {"type": event_type, "timestamp_sec": 1.0, "frame": 30},
+            }
+        },
+    )
+    assert resp.status_code == expected_status
+```
+
+For fixtures with parametrize, use `indirect`:
+
+```python
+@pytest.fixture
+def team_with_players(db: Session, request: pytest.FixtureRequest) -> Team:
+    count = request.param
+    team = TeamFactory()
+    for i in range(count):
+        PlayerFactory(team=team, jersey_number=i + 1)
+    return team
+
+@pytest.mark.parametrize("team_with_players", [0, 1, 5], indirect=True)
+def test_list_players_count(team_with_players: Team) -> None:
+    resp = client.get(f"/api/players?team={team_with_players.uid}")
+    assert resp.json()["meta"]["count"] == len(team_with_players.players)
+```
+
+### Type Annotations
+
+All test code uses type annotations:
+
+```python
+import pytest
+from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
+from open_hoops.db import Team, Player, Game
+
+def test_example(db: Session) -> None: ...
+
+@pytest.fixture
+def home_team(db: Session) -> Team: ...
+```
+
+### File Organization
+
+- `tests/conftest.py` — DB setup, factory registration, `db` fixture.
+- `tests/factories.py` — All factory definitions.
+- `tests/test_<resource>_api.py` — One file per resource/endpoint group.
+
+### Mocking External Services
+
+Only mock what you can't control in tests:
+
+```python
+from unittest.mock import patch, MagicMock
+
+@patch("app.routers.games.post.celery_app.send_task")
+def test_upload_triggers_analysis(mock_task: MagicMock, db: Session) -> None:
+    mock_task.return_value = None
+    # ... test upload
+    mock_task.assert_called_once()
+
+@patch("app.routers.games.frame.cv2")
+def test_frame_extraction(mock_cv2: MagicMock, db: Session) -> None:
+    # mock cv2.VideoCapture, imencode, etc.
+    ...
+```

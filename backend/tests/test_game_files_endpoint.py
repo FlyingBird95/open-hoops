@@ -4,7 +4,9 @@ import pytest
 from app.main import app
 from fastapi.testclient import TestClient
 
-from open_hoops.db import Base, Game, GameFile, GameStatus, Team, generate_uid
+from open_hoops.core.database import Base
+from open_hoops.service.game.models import Game, GameFile, GameStatus
+from open_hoops.service.team.models import Team, generate_uid
 from tests.conftest import TestSession, engine
 
 

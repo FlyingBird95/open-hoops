@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from open_hoops.db import Base
+from open_hoops.core.database import Base
 from app.config import settings
 
 # this is the Alembic Config object, which provides
