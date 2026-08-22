@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from open_hoops.detector import _CLASS_MAP, Detector, FrameDetections, _resolve_model_path
+from open_hoops.detector import _CLASS_MAP, Detector, FrameDetections
 
 
 def make_mock_result(boxes_data):
@@ -55,18 +55,6 @@ def test_missing_model_raises(mock_yolo_cls):
     mock_yolo_cls.side_effect = FileNotFoundError("Model not found")
     with pytest.raises(FileNotFoundError):
         Detector("nonexistent.pt")
-
-
-def test_resolve_model_path_prefers_basketball():
-    with patch("open_hoops.detector.os.path.isfile") as mock_isfile:
-        mock_isfile.side_effect = lambda p: "basketball" in p
-        assert _resolve_model_path("yolo26x.pt") == "basketball-yolo11x.pt"
-
-
-def test_resolve_model_path_falls_back():
-    with patch("open_hoops.detector.os.path.isfile") as mock_isfile:
-        mock_isfile.return_value = False
-        assert _resolve_model_path("yolo26x.pt") == "yolo26x.pt"
 
 
 def test_class_map_handles_referee():

@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -30,20 +29,10 @@ _CLASS_MAP = {
     "referee": "referee",
 }
 
-_BASKETBALL_MODEL = "basketball-yolo11x.pt"
-
-
-def _resolve_model_path(default: str) -> str:
-    """Prefer basketball-specific model if available."""
-    if os.path.isfile(_BASKETBALL_MODEL):
-        return _BASKETBALL_MODEL
-    return default
-
 
 class Detector:
     def __init__(self, model_path: str = "yolo26x.pt") -> None:
-        resolved = _resolve_model_path(model_path)
-        self._model = YOLO(resolved)
+        self._model = YOLO(model_path)
 
     def detect(self, frame: np.ndarray) -> FrameDetections:
         results = self._model.track(frame, persist=True, verbose=False)

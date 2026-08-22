@@ -1,9 +1,13 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.core.database import Base
+
+if TYPE_CHECKING:
+    from open_hoops.service.player.models import Player
 
 
 def generate_uid() -> str:

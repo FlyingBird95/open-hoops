@@ -1,10 +1,14 @@
 import enum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.core.database import Base
 from open_hoops.service.team.models import generate_uid
+
+if TYPE_CHECKING:
+    from open_hoops.service.game.models import Game
 
 
 class EventSource(str, enum.Enum):

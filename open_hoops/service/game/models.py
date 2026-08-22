@@ -1,5 +1,6 @@
 import enum
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
@@ -16,6 +17,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from open_hoops.core.database import Base
 from open_hoops.service.team.models import generate_uid
+
+if TYPE_CHECKING:
+    from open_hoops.service.team.models import Team
+    from open_hoops.service.stats.models import GameTeamStats, GamePlayerStats
+    from open_hoops.service.event.models import GameEvent
 
 
 class GameStatus(str, enum.Enum):
