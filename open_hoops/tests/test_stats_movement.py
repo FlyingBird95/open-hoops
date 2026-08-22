@@ -1,5 +1,5 @@
 from open_hoops.stats.movement import MovementTracker
-from open_hoops.tracker import TrackedPlayer
+from open_hoops.tracking.sam2_tracker import TrackedPlayer
 
 from .conftest import make_tf
 

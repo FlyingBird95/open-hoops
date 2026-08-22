@@ -1,7 +1,7 @@
 import math
 
 from open_hoops.service.analysis.models import AnalyzedEvent
-from open_hoops.tracker import TrackedFrame
+from open_hoops.tracking.sam2_tracker import TrackedFrame
 
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
