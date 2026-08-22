@@ -1,6 +1,18 @@
 import numpy as np
 import pytest
 
+from open_hoops.tracker import TrackedFrame
+
+
+def make_tf(players=None, ball_pos=None, hoops=None, frame_idx=0):
+    tf = TrackedFrame(frame_idx=frame_idx)
+    tf.players = players or []
+    if ball_pos is not None:
+        tf.ball_pos = ball_pos
+    if hoops is not None:
+        tf.hoops = hoops
+    return tf
+
 
 @pytest.fixture
 def blank_frame():

@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 
-from open_hoops.models import Roster
+from open_hoops.service.analysis.models import Roster
 
 if TYPE_CHECKING:
     from open_hoops.pass_one import TrackProfile
@@ -112,7 +110,7 @@ class TeamClassifier:
 
 
 def assign_teams_from_profiles(
-    tracks: dict[int, TrackProfile],
+    tracks: dict[int, "TrackProfile"],
     roster: Roster | None,
 ) -> None:
     """Assign team to each TrackProfile by clustering all histograms.

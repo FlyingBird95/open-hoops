@@ -25,7 +25,7 @@ def test_identify_returns_none_on_ocr_failure(player_id_frame):
 
 def test_identify_majority_vote(player_id_frame):
     ident = PlayerIdentifier()
-    with patch.object(ident, "_run_ocr", return_value=23):
+    with patch.object(ident, "run_ocr", return_value=23):
         # Call identify() at frame multiples of 30 to trigger OCR
         for i in range(10):
             frame_num = i * 30
@@ -38,7 +38,7 @@ def test_identify_majority_vote(player_id_frame):
 def test_identify_skips_frames(player_id_frame):
     ident = PlayerIdentifier()
     called = []
-    with patch.object(ident, "_run_ocr", side_effect=lambda f, b: called.append(1) or 5):
+    with patch.object(ident, "run_ocr", side_effect=lambda f, b: called.append(1) or 5):
         for frame_num in range(90):
             ident.identify(player_id_frame, (100, 200, 150, 300), track_id=1)
     # OCR called only at frames 0, 30, 60 → 3 times

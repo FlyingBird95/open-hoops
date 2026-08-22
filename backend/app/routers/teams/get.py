@@ -1,15 +1,15 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import database
 from app.jsonapi import document
-from app.models import Team
 
+from .queries import fetch_team
+from .router import router
 from .serialize import serialize_team
 
 
-def get_team(uid: str, db: Session = Depends(get_db)):
-    team = db.query(Team).filter(Team.uid == uid).first()
-    if not team:
-        raise HTTPException(404, "Team not found")
+@router.get("/{uid}")
+def get_team(uid: str, db: Session = Depends(database.use_session)):
+    team = fetch_team(db, uid)
     return document(data=serialize_team(team))

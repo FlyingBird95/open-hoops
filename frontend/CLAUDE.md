@@ -15,7 +15,7 @@ frontend/      — React + TypeScript + Vite dashboard
 ### IDs and UIDs
 
 - Database tables use `id: int` (auto-increment) as primary key for all internal joins/FKs.
-- Every table also has `uid: str(32)` — a 32-character hex string (UUID without hyphens).
+- Every API resource table has `uid: str(32)` — a 32-character hex string (UUID without hyphens). Non-resource tables (e.g. stats aggregates) do NOT have uid.
 - API endpoints expose ONLY `uid`. Never expose internal `id` in responses or accept it in requests.
 - Generate UIDs with `uuid.uuid4().hex` (produces 32-char lowercase hex, no hyphens).
 

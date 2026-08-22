@@ -1,4 +1,5 @@
-from open_hoops.db.models import GameFile, generate_uid
+from open_hoops.service.game.models import GameFile
+from open_hoops.service.team.models import generate_uid
 
 
 def test_game_file_has_required_columns():

@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 import math
 
-from open_hoops.models import GameEvent
+from open_hoops.service.analysis.models import AnalyzedEvent
 from open_hoops.tracker import TrackedFrame
 
 
@@ -22,7 +20,7 @@ class PossessionTracker:
         player_teams: dict[int, str],
         frame_idx: int,
         fps: float,
-    ) -> list[GameEvent]:
+    ) -> list[AnalyzedEvent]:
         if tf.ball_pos is None or not tf.players:
             return []
 
@@ -30,10 +28,10 @@ class PossessionTracker:
         new_owner = nearest.track_id
         new_team = player_teams.get(new_owner, "team_a")
 
-        events: list[GameEvent] = []
+        events: list[AnalyzedEvent] = []
         if new_team != self._current_team and self._current_team is not None:
             events.append(
-                GameEvent(
+                AnalyzedEvent(
                     type="possession_change",
                     frame=frame_idx,
                     timestamp_sec=frame_idx / fps,

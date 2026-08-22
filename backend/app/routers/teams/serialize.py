@@ -1,5 +1,5 @@
 from app.jsonapi import resource_object
-from app.models import Team
+from open_hoops.service.team.models import Team
 
 
 def serialize_team(team: Team) -> dict:

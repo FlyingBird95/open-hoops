@@ -20,15 +20,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.10"]
+dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff==0.16.4", "mypy>=1.10"]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["backend/alembic"]
+extend-exclude = ["backend/alembic", "**/*.md"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/app/routers/**" = ["B008"]
+"backend/app/routers/**/router.py" = ["E402", "F401"]
+"open_hoops/service/**" = ["TC004", "F821"]
+"open_hoops/identity/**" = ["TC004"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -39,4 +42,4 @@ testpaths = ["open_hoops/tests"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["open_hoops*"]
+include = ["open_hoops*", "testhelpers*"]

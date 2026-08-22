@@ -1,7 +1,5 @@
 """PlayerIdentifier — jersey number OCR using EasyOCR."""
 
-from __future__ import annotations
-
 import re
 from typing import TYPE_CHECKING
 
@@ -31,7 +29,7 @@ class PlayerIdentifier:
             self._reader = easyocr.Reader(["en"], gpu=False, verbose=False)
         return self._reader
 
-    def _run_ocr(self, frame: np.ndarray, bbox: tuple[int, int, int, int]) -> int | None:
+    def run_ocr(self, frame: np.ndarray, bbox: tuple[int, int, int, int]) -> int | None:
         """Run OCR on torso region of player crop.
 
         Args:
@@ -105,7 +103,7 @@ class PlayerIdentifier:
 
         # Run OCR every 30 frames
         if count % 30 == 0:
-            number = self._run_ocr(frame, bbox)
+            number = self.run_ocr(frame, bbox)
             if number is not None:
                 self._history.setdefault(track_id, []).append(number)
 
@@ -113,7 +111,7 @@ class PlayerIdentifier:
         return self._majority(track_id)
 
 
-def finalize_jerseys(tracks: dict[int, TrackProfile]) -> None:
+def finalize_jerseys(tracks: dict[int, "TrackProfile"]) -> None:
     """Assign jersey number to each TrackProfile using area-weighted majority vote.
 
     Mutates profile.jersey in place.

@@ -1,12 +1,7 @@
 from open_hoops.stats.possession import PossessionTracker
-from open_hoops.tracker import TrackedFrame, TrackedPlayer
+from open_hoops.tracker import TrackedPlayer
 
-
-def make_tf(players, ball_pos, frame_idx=0):
-    tf = TrackedFrame(frame_idx=frame_idx)
-    tf.players = players
-    tf.ball_pos = ball_pos
-    return tf
+from .conftest import make_tf
 
 
 def test_possession_assigned_to_nearest_player():

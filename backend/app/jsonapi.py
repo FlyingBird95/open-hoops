@@ -3,11 +3,13 @@ from typing import Any
 
 def resource_object(
     type: str,
-    uid: str,
     attributes: dict[str, Any],
+    uid: str | None = None,
     relationships: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    obj: dict[str, Any] = {"type": type, "uid": uid, "attributes": attributes}
+    obj: dict[str, Any] = {"type": type, "attributes": attributes}
+    if uid:
+        obj["uid"] = uid
     if relationships:
         obj["relationships"] = relationships
     return obj
@@ -15,10 +17,6 @@ def resource_object(
 
 def relationship_linkage(type: str, uid: str) -> dict[str, Any]:
     return {"data": {"type": type, "uid": uid}}
-
-
-def null_relationship() -> dict[str, Any]:
-    return {"data": None}
 
 
 def document(data: dict | list, meta: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -1,15 +1,16 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import Team
+from app.database import database
+
+from .queries import fetch_team
+from .router import router
 
 
-def delete_team(uid: str, db: Session = Depends(get_db)):
-    team = db.query(Team).filter(Team.uid == uid).first()
-    if not team:
-        raise HTTPException(404, "Team not found")
+@router.delete("/{uid}")
+def delete_team(uid: str, db: Session = Depends(database.use_session)):
+    team = fetch_team(db, uid)
     db.delete(team)
     db.commit()
     return Response(status_code=204)

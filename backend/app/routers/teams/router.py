@@ -1,14 +1,5 @@
 from fastapi import APIRouter
 
-from .collection import list_teams
-from .delete import delete_team
-from .get import get_team
-from .patch import update_team
-from .post import create_team
-
 router = APIRouter(prefix="/api/teams", tags=["teams"])
-router.get("")(list_teams)
-router.post("")(create_team)
-router.get("/{uid}")(get_team)
-router.patch("/{uid}")(update_team)
-router.delete("/{uid}")(delete_team)
+
+from . import collection, delete, get, patch, post

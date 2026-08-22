@@ -1,5 +1,5 @@
 from app.jsonapi import relationship_linkage, resource_object
-from app.models import Player
+from open_hoops.service.player.models import Player
 
 
 def serialize_player(player: Player) -> dict:

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { gamesApi, teamsApi, playersApi } from "../lib/api";
+import { gamesApi, eventsApi, teamsApi, playersApi } from "../lib/api";
 import type { Game, GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +38,7 @@ export default function GameDetail() {
 
   const { data: events } = useQuery({
     queryKey: ["game-events", uid],
-    queryFn: () => gamesApi.events(uid!),
+    queryFn: () => eventsApi.list(uid!),
     enabled: game?.status === "done",
   });
 
@@ -196,10 +196,10 @@ function PlayerStatsTable({ stats, game, teamNameByUid }: { stats: GameStatsResp
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {players.map((p) => {
+                  {players.map((p, i) => {
                     const fgPct = p.shot_attempts > 0 ? p.shot_makes / p.shot_attempts : 0;
                     return (
-                      <TableRow key={p.uid}>
+                      <TableRow key={`${p.team_uid}-${p.jersey_number ?? i}`}>
                         <TableCell className="font-medium">{p.jersey_number ?? "?"}</TableCell>
                         <TableCell>{p.shot_attempts}</TableCell>
                         <TableCell>{p.shot_makes}</TableCell>
@@ -349,7 +349,7 @@ function EventEditorPanel({ events, game, teamNameByUid, playerNameByUid, getCur
 
   const createMutation = useMutation({
     mutationFn: (attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string; player2_uid?: string }) =>
-      gamesApi.createEvent(game.uid, attrs),
+      eventsApi.create(game.uid, attrs),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["game-events", game.uid] });
       toast("Event added");
@@ -358,7 +358,7 @@ function EventEditorPanel({ events, game, teamNameByUid, playerNameByUid, getCur
 
   const updateMutation = useMutation({
     mutationFn: ({ eventId, attrs }: { eventId: string; attrs: { type?: string; team_uid?: string | null; player_uid?: string | null; player2_uid?: string | null } }) =>
-      gamesApi.updateEvent(game.uid, eventId, attrs),
+      eventsApi.update(eventId, attrs),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["game-events", game.uid] });
       toast("Event updated");
@@ -366,7 +366,7 @@ function EventEditorPanel({ events, game, teamNameByUid, playerNameByUid, getCur
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (eventId: string) => gamesApi.deleteEvent(game.uid, eventId),
+    mutationFn: (eventId: string) => eventsApi.delete(eventId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["game-events", game.uid] });
       setSelectedEventUid(null);

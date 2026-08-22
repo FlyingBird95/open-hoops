@@ -1,15 +1,15 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import database
 from app.jsonapi import document
-from app.models import Player
 
+from .queries import fetch_player
+from .router import router
 from .serialize import serialize_player
 
 
-def get_player(uid: str, db: Session = Depends(get_db)):
-    player = db.query(Player).filter(Player.uid == uid).first()
-    if not player:
-        raise HTTPException(404, "Player not found")
+@router.get("/{uid}")
+def get_player(uid: str, db: Session = Depends(database.use_session)):
+    player = fetch_player(db, uid)
     return document(data=serialize_player(player))

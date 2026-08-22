@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -13,11 +11,6 @@ class Point(BaseModel):
 class Video(BaseModel):
     path: str
 
-    def __init__(self, path: str | None = None, **data):
-        if path is not None:
-            data["path"] = path
-        super().__init__(**data)
-
 
 class TeamRoster(BaseModel):
     color: str
@@ -29,7 +22,7 @@ class Roster(BaseModel):
     away: TeamRoster
 
 
-class PlayerStats(BaseModel):
+class AnalyzedPlayerStats(BaseModel):
     player_id: int | None
     team_id: str
     positions: list[Point] = Field(default_factory=list)
@@ -42,11 +35,11 @@ class PlayerStats(BaseModel):
     possession_frames: int = 0
 
 
-class TeamStats(BaseModel):
+class AnalyzedTeamStats(BaseModel):
     team_id: str
     color: str = ""
     score: int = 0
-    players: list[PlayerStats] = Field(default_factory=list)
+    players: list[AnalyzedPlayerStats] = Field(default_factory=list)
     possession_pct: float = 0.0
 
 
@@ -65,7 +58,7 @@ class BBox(BaseModel):
     y2: int
 
 
-class GameEvent(BaseModel):
+class AnalyzedEvent(BaseModel):
     type: Literal["shot", "make", "miss", "pass", "possession_change"]
     frame: int
     timestamp_sec: float
@@ -74,10 +67,10 @@ class GameEvent(BaseModel):
     bbox: BBox | None = None
 
 
-class GameStats(BaseModel):
+class AnalysisResult(BaseModel):
     video: Video
     duration_seconds: float
     fps: float
-    teams: list[TeamStats] = Field(default_factory=list)
-    events: list[GameEvent] = Field(default_factory=list)
+    teams: list[AnalyzedTeamStats] = Field(default_factory=list)
+    events: list[AnalyzedEvent] = Field(default_factory=list)
     substitutions: list[SubstitutionEvent] = Field(default_factory=list)

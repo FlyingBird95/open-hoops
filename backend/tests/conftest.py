@@ -1,36 +1,36 @@
-import pytest
+from app.database import database
 from app.main import app
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from pytest_factoryboy import LazyFixture, register
 
-from open_hoops.db import Base, get_db
-
-TEST_DB_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    TEST_DB_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+from testhelpers.db import TestSession
+from testhelpers.factories import (
+    GameEventFactory,
+    GameFactory,
+    GameFileFactory,
+    GamePlayerStatsFactory,
+    GameTeamStatsFactory,
+    PlayerFactory,
+    TeamFactory,
 )
-TestSession = sessionmaker(bind=engine)
+from testhelpers.fixtures import db  # noqa: F401
+
+register(TeamFactory)
+register(TeamFactory, "own_team", is_own=True)
+register(TeamFactory, "opponent_team", is_own=False)
+register(PlayerFactory)
+register(GameFactory, own_team=LazyFixture("own_team"), opponent_team=LazyFixture("opponent_team"))
+register(GameFileFactory, game=LazyFixture("game"))
+register(GameTeamStatsFactory, game=LazyFixture("game"))
+register(GamePlayerStatsFactory, game=LazyFixture("game"))
+register(GameEventFactory, game=LazyFixture("game"))
 
 
-def override_get_db():
-    db = TestSession()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(engine)
+def override_use_session():
     session = TestSession()
-    yield session
-    session.close()
-    Base.metadata.drop_all(engine)
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+app.dependency_overrides[database.use_session] = override_use_session

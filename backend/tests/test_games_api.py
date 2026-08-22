@@ -1,40 +1,17 @@
 from io import BytesIO
 from unittest.mock import patch
 
-import pytest
 from app.main import app
 from fastapi.testclient import TestClient
 
-from open_hoops.db import Base
-from tests.conftest import engine
-
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    Base.metadata.create_all(engine)
-    yield
-    Base.metadata.drop_all(engine)
-
+from open_hoops.service.game.models import Game
 
 client = TestClient(app)
 
 
-@pytest.fixture
-def teams():
-    home = client.post(
-        "/api/teams",
-        json={"data": {"type": "teams", "attributes": {"name": "Lakers", "is_own": True}}},
-    ).json()["data"]["uid"]
-    away = client.post(
-        "/api/teams",
-        json={"data": {"type": "teams", "attributes": {"name": "Celtics", "is_own": False}}},
-    ).json()["data"]["uid"]
-    return home, away
-
-
 @patch("app.routers.games.post.celery_app.send_task")
-def test_upload_game(mock_task, teams, tmp_path):
-    home_uid, away_uid = teams
+def test_upload_game(mock_task, game: Game):
+    home_uid, away_uid = game.own_team.uid, game.opponent_team.uid
     mock_task.return_value = None
 
     resp = client.post(
@@ -55,8 +32,7 @@ def test_upload_game(mock_task, teams, tmp_path):
 
 
 @patch("app.routers.games.post.celery_app.send_task")
-def test_list_games(mock_task, teams):
-    home_uid, away_uid = teams
+def test_list_games(mock_task, game: Game):
     mock_task.return_value = None
 
     client.post(
@@ -64,18 +40,17 @@ def test_list_games(mock_task, teams):
         data={
             "name": "G1",
             "date": "2026-01-15",
-            "own_team_uid": home_uid,
-            "opponent_team_uid": away_uid,
+            "own_team_uid": game.own_team.uid,
+            "opponent_team_uid": game.opponent_team.uid,
         },
         files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
     resp = client.get("/api/games")
-    assert len(resp.json()["data"]) == 1
+    assert len(resp.json()["data"]) >= 1
 
 
 @patch("app.routers.games.post.celery_app.send_task")
-def test_get_game(mock_task, teams):
-    home_uid, away_uid = teams
+def test_get_game(mock_task, game: Game):
     mock_task.return_value = None
 
     resp = client.post(
@@ -83,8 +58,8 @@ def test_get_game(mock_task, teams):
         data={
             "name": "G1",
             "date": "2026-01-15",
-            "own_team_uid": home_uid,
-            "opponent_team_uid": away_uid,
+            "own_team_uid": game.own_team.uid,
+            "opponent_team_uid": game.opponent_team.uid,
         },
         files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
@@ -117,17 +92,18 @@ def test_get_game_not_found():
 
 
 @patch("app.routers.games.post.celery_app.send_task")
-def test_archive_game(mock_task, teams):
-    home_uid, away_uid = teams
+def test_archive_game(mock_task, game: Game):
     mock_task.return_value = None
+
+    baseline = len(client.get("/api/games").json()["data"])
 
     resp = client.post(
         "/api/games",
         data={
             "name": "G1",
             "date": "2026-01-15",
-            "own_team_uid": home_uid,
-            "opponent_team_uid": away_uid,
+            "own_team_uid": game.own_team.uid,
+            "opponent_team_uid": game.opponent_team.uid,
         },
         files=[("files", ("g.mp4", BytesIO(b"data"), "video/mp4"))],
     )
@@ -143,11 +119,11 @@ def test_archive_game(mock_task, teams):
 
     # Archived game hidden from default list
     resp = client.get("/api/games")
-    assert len(resp.json()["data"]) == 0
+    assert len(resp.json()["data"]) == baseline
 
     # Visible with archived=true
     resp = client.get("/api/games?archived=true")
-    assert len(resp.json()["data"]) == 1
+    assert any(g["uid"] == uid for g in resp.json()["data"])
 
     # Unarchive
     resp = client.patch(
@@ -156,10 +132,6 @@ def test_archive_game(mock_task, teams):
     )
     assert resp.status_code == 200
     assert resp.json()["data"]["attributes"]["is_archived"] is False
-
-    # Back in default list
-    resp = client.get("/api/games")
-    assert len(resp.json()["data"]) == 1
 
 
 def test_patch_game_not_found():

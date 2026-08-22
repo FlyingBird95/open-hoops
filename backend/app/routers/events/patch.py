@@ -2,11 +2,14 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import database
 from app.jsonapi import document
-from app.models import Game, GameEvent, Player, Team
+from open_hoops.service.player.models import Player
+from open_hoops.service.team.models import Team
 
-from .events_post import EVENT_TYPES
+from .post import EVENT_TYPES
+from .queries import fetch_event
+from .router import router
 from .serialize import serialize_event
 
 
@@ -26,18 +29,9 @@ class EventPatchRequest(BaseModel):
     data: EventPatchData
 
 
-def patch_event(uid: str, event_id: str, body: EventPatchRequest, db: Session = Depends(get_db)):
-    game = db.query(Game).filter(Game.uid == uid).first()
-    if not game:
-        raise HTTPException(404, "Game not found")
-
-    event = (
-        db.query(GameEvent)
-        .filter(GameEvent.id == int(event_id), GameEvent.game_id == game.id)
-        .first()
-    )
-    if not event:
-        raise HTTPException(404, "Event not found")
+@router.patch("/{uid}")
+def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(database.use_session)):
+    event = fetch_event(db, uid)
 
     attrs = body.data.attributes
 

@@ -1,24 +1,22 @@
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from pytest_factoryboy import LazyFixture, register
 
-from open_hoops.db import Base
-
-TEST_DB_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    TEST_DB_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+from testhelpers.factories import (
+    GameEventFactory,
+    GameFactory,
+    GameFileFactory,
+    GamePlayerStatsFactory,
+    GameTeamStatsFactory,
+    PlayerFactory,
+    TeamFactory,
 )
-TestSession = sessionmaker(bind=engine)
+from testhelpers.fixtures import db  # noqa: F401
 
-
-@pytest.fixture
-def db_session():
-    Base.metadata.create_all(engine)
-    session = TestSession()
-    yield session
-    session.close()
-    Base.metadata.drop_all(engine)
+register(TeamFactory)
+register(TeamFactory, "own_team", is_own=True)
+register(TeamFactory, "opponent_team", is_own=False)
+register(PlayerFactory, team=LazyFixture("own_team"), jersey_number=23, name="Star")
+register(GameFactory, own_team=LazyFixture("own_team"), opponent_team=LazyFixture("opponent_team"))
+register(GameFileFactory, game=LazyFixture("game"))
+register(GameTeamStatsFactory, game=LazyFixture("game"))
+register(GamePlayerStatsFactory, game=LazyFixture("game"))
+register(GameEventFactory, game=LazyFixture("game"))
