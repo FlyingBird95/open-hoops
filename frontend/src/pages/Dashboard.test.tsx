@@ -9,7 +9,7 @@ vi.mock("../lib/api", () => ({
 }));
 
 import { gamesApi, teamsApi } from "../lib/api";
-import type { Game, Team } from "../lib/api";
+import type { Game } from "../lib/api";
 import Dashboard from "./Dashboard";
 
 function renderWithProviders(ui: React.ReactElement) {
@@ -41,16 +41,6 @@ function makeGame(overrides: Partial<Game> = {}): Game {
   };
 }
 
-function makeTeam(overrides: Partial<Team> = {}): Team {
-  return {
-    uid: "opp1uid000000000000000000000000",
-    name: "Opponents FC",
-    is_own: false,
-    home_color: "#0000FF",
-    away_color: "#FFFFFF",
-    ...overrides,
-  };
-}
 
 afterEach(cleanup);
 

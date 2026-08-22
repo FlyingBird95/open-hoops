@@ -14,8 +14,8 @@ vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
 import { teamsApi, playersApi } from "../lib/api";
 import Opponents from "./Opponents";
 
-const mockTeamsApi = teamsApi as { list: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
-const mockPlayersApi = playersApi as { list: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+const mockTeamsApi = vi.mocked(teamsApi);
+const mockPlayersApi = vi.mocked(playersApi);
 
 function renderWithProviders(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
