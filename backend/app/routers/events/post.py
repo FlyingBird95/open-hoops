@@ -2,8 +2,8 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game
 from open_hoops.service.player.models import Player
@@ -48,7 +48,7 @@ class EventCreateRequest(BaseModel):
 
 
 @router.post("")
-def create_event(body: EventCreateRequest, db: Session = Depends(get_db)):
+def create_event(body: EventCreateRequest, db: Session = Depends(database.use_session)):
     attrs = body.data.attributes
 
     game = db.query(Game).filter(Game.uid == attrs.game_uid).first()

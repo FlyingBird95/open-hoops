@@ -2,8 +2,8 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 from open_hoops.service.player.models import Player
 from open_hoops.service.team.models import Team
 
@@ -30,7 +30,7 @@ class EventPatchRequest(BaseModel):
 
 
 @router.patch("/{uid}")
-def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(get_db)):
+def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(database.use_session)):
     event = fetch_event(db, uid)
 
     attrs = body.data.attributes

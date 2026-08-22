@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.celery_app import celery as celery_app
 from app.config import settings
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 from open_hoops.service.game.models import Game, GameFile
 from open_hoops.service.team.models import Team, generate_uid
 
@@ -26,7 +26,7 @@ def upload_game(
     own_team_color: str = Form("#000000"),
     opponent_team_color: str = Form("#ffffff"),
     files: list[UploadFile] = File(...),
-    db: Session = Depends(get_db),
+    db: Session = Depends(database.use_session),
 ):
     own_team = db.query(Team).filter(Team.uid == own_team_uid).first()
     if not own_team:

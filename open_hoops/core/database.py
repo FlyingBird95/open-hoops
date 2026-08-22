@@ -1,52 +1,34 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-
-_engine = None
-_SessionLocal = None
 
 
 class Base(DeclarativeBase):
     pass
 
 
-def get_engine(database_url: str | None = None):
-    global _engine
-    if database_url:
-        _engine = create_engine(database_url)
-    if _engine is None:
-        raise RuntimeError("Database engine not initialized. Call get_engine(url) first.")
-    return _engine
+class Database:
+    def __init__(self, url: str):
+        self.engine: Engine = create_engine(url)
+        self.session_factory: sessionmaker[Session] = sessionmaker(bind=self.engine)
 
+    def use_session(self) -> Generator[Session, None, None]:
+        session = self.session_factory()
+        try:
+            yield session
+        finally:
+            session.close()
 
-def get_session_factory(database_url: str | None = None) -> sessionmaker:
-    global _SessionLocal
-    if database_url or _SessionLocal is None:
-        engine = get_engine(database_url)
-        _SessionLocal = sessionmaker(bind=engine)
-    return _SessionLocal
-
-
-def get_db() -> Generator[Session, None, None]:
-    if _SessionLocal is None:
-        raise RuntimeError("Database not initialized. Call get_session_factory(url) first.")
-    db = _SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@contextmanager
-def session_scope(session_factory: sessionmaker) -> Generator[Session, None, None]:
-    db = session_factory()
-    try:
-        yield db
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+    @contextmanager
+    def use_scoped_session(self) -> Generator[Session, None, None]:
+        session = self.session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()

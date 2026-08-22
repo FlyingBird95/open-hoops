@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 from open_hoops.service.team.models import Team
 
 from .router import router
@@ -28,7 +28,7 @@ class TeamCreateRequest(BaseModel):
 
 
 @router.post("")
-def create_team(body: TeamCreateRequest, db: Session = Depends(get_db)):
+def create_team(body: TeamCreateRequest, db: Session = Depends(database.use_session)):
     attrs = body.data.attributes
     team = Team(
         name=attrs.name,

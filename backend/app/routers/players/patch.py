@@ -2,8 +2,8 @@ from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 
 from .queries import fetch_player
 from .router import router
@@ -25,7 +25,7 @@ class PlayerPatchRequest(BaseModel):
 
 
 @router.patch("/{uid}")
-def update_player(uid: str, body: PlayerPatchRequest, db: Session = Depends(get_db)):
+def update_player(uid: str, body: PlayerPatchRequest, db: Session = Depends(database.use_session)):
     player = fetch_player(db, uid)
     for key, value in body.data.attributes.model_dump(exclude_unset=True).items():
         setattr(player, key, value)

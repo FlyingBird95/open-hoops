@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 from open_hoops.service.event.models import GameEvent
 from open_hoops.service.game.models import Game
 
@@ -14,7 +14,7 @@ from .serialize import serialize_event
 def list_events(
     game: str = Query(...),
     type: str | None = Query(None),
-    db: Session = Depends(get_db),
+    db: Session = Depends(database.use_session),
 ):
     game_obj = db.query(Game).filter(Game.uid == game).first()
     if not game_obj:

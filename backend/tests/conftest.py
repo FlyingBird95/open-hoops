@@ -1,7 +1,7 @@
+from app.database import database
 from app.main import app
 from pytest_factoryboy import LazyFixture, register
 
-from open_hoops.core.database import get_db
 from testhelpers.db import TestSession
 from testhelpers.factories import (
     GameEventFactory,
@@ -25,7 +25,7 @@ register(GamePlayerStatsFactory, game=LazyFixture("game"))
 register(GameEventFactory, game=LazyFixture("game"))
 
 
-def override_get_db():
+def override_use_session():
     session = TestSession()
     try:
         yield session
@@ -33,4 +33,4 @@ def override_get_db():
         session.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[database.use_session] = override_use_session

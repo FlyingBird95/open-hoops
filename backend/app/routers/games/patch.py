@@ -1,8 +1,8 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from app.database import database
 from app.jsonapi import document
-from open_hoops.core.database import get_db
 
 from .queries import fetch_game
 from .router import router
@@ -12,7 +12,7 @@ ALLOWED_ATTRS = {"is_archived"}
 
 
 @router.patch("/{uid}")
-def update_game(uid: str, body: dict, db: Session = Depends(get_db)):
+def update_game(uid: str, body: dict, db: Session = Depends(database.use_session)):
     game = fetch_game(db, uid)
     attrs = body.get("data", {}).get("attributes", {})
     for key, value in attrs.items():

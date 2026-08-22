@@ -2,14 +2,14 @@ from fastapi import Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from open_hoops.core.database import get_db
+from app.database import database
 
 from .queries import fetch_player
 from .router import router
 
 
 @router.delete("/{uid}")
-def delete_player(uid: str, db: Session = Depends(get_db)):
+def delete_player(uid: str, db: Session = Depends(database.use_session)):
     player = fetch_player(db, uid)
     db.delete(player)
     db.commit()

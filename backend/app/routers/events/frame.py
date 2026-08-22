@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from open_hoops.core.database import get_db
+from app.database import database
 from open_hoops.service.game.models import GameFile
 
 from .queries import fetch_event
@@ -11,7 +11,7 @@ from .router import router
 
 
 @router.get("/{uid}/frame")
-def get_event_frame(uid: str, db: Session = Depends(get_db)):
+def get_event_frame(uid: str, db: Session = Depends(database.use_session)):
     event = fetch_event(db, uid)
 
     game_files = (

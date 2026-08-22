@@ -3,7 +3,7 @@ import os
 from sqlalchemy.orm import Session
 
 from open_hoops.analyzer import OpenHoop
-from open_hoops.core.database import get_session_factory, session_scope
+from open_hoops.core.database import Database
 from open_hoops.service.analysis.models import Roster, TeamRoster, Video
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameFile, GameStatus
@@ -14,12 +14,12 @@ from worker.celery_app import celery
 database_url = os.environ.get(
     "OPEN_HOOPS_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/open_hoops"
 )
-SessionLocal = get_session_factory(database_url)
+database = Database(database_url)
 
 
 @celery.task(name="worker.tasks.analyze_game")
 def analyze_game(game_uid: str) -> None:
-    with session_scope(SessionLocal) as db:
+    with database.use_scoped_session() as db:
         game = db.query(Game).filter(Game.uid == game_uid).first()
         if not game:
             return
