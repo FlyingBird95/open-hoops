@@ -1,5 +1,6 @@
 from open_hoops.db.base import Base, get_db, get_engine, get_session_factory
 from open_hoops.db.models import (
+    EventSource,
     Game,
     GameEvent,
     GameFile,
@@ -13,6 +14,7 @@ from open_hoops.db.models import (
 
 __all__ = [
     "Base",
+    "EventSource",
     "Game",
     "GameEvent",
     "GameFile",
