@@ -7,7 +7,7 @@ name = "open_hoops"
 version = "0.1.0"
 description = "Extract basketball stats from video using YOLO"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
     "ultralytics>=8.0",
@@ -23,7 +23,7 @@ dependencies = [
 dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff==0.16.4", "mypy>=1.10"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 100
 extend-exclude = ["backend/alembic", "**/*.md"]
 
@@ -33,7 +33,7 @@ extend-exclude = ["backend/alembic", "**/*.md"]
 "open_hoops/identity/**" = ["TC004"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 
 [tool.pytest.ini_options]
