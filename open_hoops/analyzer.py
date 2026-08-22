@@ -5,6 +5,8 @@ import numpy as np
 
 from open_hoops.identity.player import finalize_jerseys
 from open_hoops.identity.team import assign_teams_from_profiles
+from open_hoops.overlay import Overlay
+from open_hoops.pass_one import run_pass_one
 from open_hoops.service.analysis.models import (
     AnalysisResult,
     AnalyzedPlayerStats,
@@ -15,8 +17,6 @@ from open_hoops.service.analysis.models import (
     SubstitutionEvent,
     Video,
 )
-from open_hoops.overlay import Overlay
-from open_hoops.pass_one import run_pass_one
 from open_hoops.stats.ball_interpolator import interpolate_ball
 from open_hoops.stats.movement import MovementTracker
 from open_hoops.stats.passes import PassDetector

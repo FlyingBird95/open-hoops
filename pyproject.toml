@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff>=0.4", "mypy>=1.10"]
+dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff==0.16.4", "mypy>=1.10"]
 
 [tool.ruff]
 target-version = "py310"
