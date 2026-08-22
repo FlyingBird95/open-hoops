@@ -1,41 +1,16 @@
 import io
 from unittest.mock import patch
 
-import pytest
 from app.main import app
 from fastapi.testclient import TestClient
 
-from open_hoops.core.database import Base
-from tests.conftest import engine
-
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    Base.metadata.create_all(engine)
-    yield
-    Base.metadata.drop_all(engine)
-
+from open_hoops.service.game.models import Game
 
 client = TestClient(app)
 
 
-@pytest.fixture
-def teams():
-    """Create home + away teams, return their UIDs."""
-    home = client.post(
-        "/api/teams",
-        json={"data": {"type": "teams", "attributes": {"name": "Home", "is_own": True}}},
-    ).json()["data"]["uid"]
-    away = client.post(
-        "/api/teams",
-        json={"data": {"type": "teams", "attributes": {"name": "Away", "is_own": False}}},
-    ).json()["data"]["uid"]
-    return home, away
-
-
 @patch("app.routers.games.post.celery_app.send_task")
-def test_upload_multiple_files(mock_task, teams):
-    home_uid, away_uid = teams
+def test_upload_multiple_files(mock_task, game: Game):
     mock_task.return_value = None
 
     files = [
@@ -47,8 +22,8 @@ def test_upload_multiple_files(mock_task, teams):
         data={
             "name": "Test Game",
             "date": "2026-08-05",
-            "own_team_uid": home_uid,
-            "opponent_team_uid": away_uid,
+            "own_team_uid": game.own_team.uid,
+            "opponent_team_uid": game.opponent_team.uid,
         },
         files=files,
     )
@@ -59,8 +34,7 @@ def test_upload_multiple_files(mock_task, teams):
 
 
 @patch("app.routers.games.post.celery_app.send_task")
-def test_upload_single_file_via_files_param(mock_task, teams):
-    home_uid, away_uid = teams
+def test_upload_single_file_via_files_param(mock_task, game: Game):
     mock_task.return_value = None
 
     response = client.post(
@@ -68,8 +42,8 @@ def test_upload_single_file_via_files_param(mock_task, teams):
         data={
             "name": "Single File Game",
             "date": "2026-08-05",
-            "own_team_uid": home_uid,
-            "opponent_team_uid": away_uid,
+            "own_team_uid": game.own_team.uid,
+            "opponent_team_uid": game.opponent_team.uid,
         },
         files=[("files", ("game.mp4", io.BytesIO(b"fake"), "video/mp4"))],
     )

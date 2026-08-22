@@ -1,15 +1,16 @@
-import datetime
 from unittest.mock import MagicMock, patch
 
-from open_hoops.service.game.models import Game, GameFile, GameStatus
-from open_hoops.service.team.models import Team, generate_uid
-from open_hoops.models import GameStats, TeamStats
-from open_hoops.models import Video as OHVideo
+from sqlalchemy.orm import Session
+
+from open_hoops.models import GameStats, TeamStats, Video
+from open_hoops.service.game.models import Game, GameStatus
+from testhelpers.factories import GameFileFactory
+from worker.tasks import analyze_game
 
 
 def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):
     return GameStats(
-        video=OHVideo(path=path),
+        video=Video(path=path),
         duration_seconds=duration,
         fps=fps,
         teams=[
@@ -20,60 +21,31 @@ def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):
     )
 
 
-def test_analyze_merges_multiple_files(db_session, monkeypatch):
-    home = Team(uid=generate_uid(), name="H", is_own=True)
-    away = Team(uid=generate_uid(), name="A", is_own=False)
-    db_session.add_all([home, away])
-    db_session.flush()
+class _NoCloseSession:
+    def __init__(self, s):
+        self._s = s
 
-    game = Game(
-        uid=generate_uid(),
-        name="Multi",
-        date=datetime.date(2026, 8, 5),
-        own_team_id=home.id,
-        opponent_team_id=away.id,
-    )
-    db_session.add(game)
-    db_session.flush()
+    def __getattr__(self, name):
+        return getattr(self._s, name)
 
-    for i in range(2):
-        db_session.add(
-            GameFile(
-                uid=generate_uid(),
-                game_id=game.id,
-                file_path=f"uploads/part{i}.mp4",
-                position=i,
-                original_filename=f"part{i}.mp4",
-                size_bytes=1000,
-            )
-        )
-    db_session.commit()
+    def close(self):
+        pass
+
+
+def test_analyze_merges_multiple_files(db: Session, game: Game):
+    GameFileFactory(game=game, file_path="uploads/part0.mp4", position=0)
+    GameFileFactory(game=game, file_path="uploads/part1.mp4", position=1)
 
     mock_oh = MagicMock()
     mock_oh.extract_stats.return_value = make_fake_stats(duration=60.0)
 
-    # Patch SessionLocal to return the test db_session so analyze_game uses the
-    # same in-memory SQLite connection as the test.
-    # Wrap db_session so close() is a no-op (analyze_game calls db.close() in finally)
-    class _NoCloseSession:
-        def __init__(self, s):
-            self._s = s
-
-        def __getattr__(self, name):
-            return getattr(self._s, name)
-
-        def close(self):
-            pass
-
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh) as MockOH,
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh) as MockOH,
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
-    db_session.refresh(game)
+    db.refresh(game)
     assert game.status == GameStatus.done
-    assert game.duration_seconds == 120.0  # 60 + 60
+    assert game.duration_seconds == 120.0
     assert MockOH.call_count == 2

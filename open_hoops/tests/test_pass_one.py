@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
+from open_hoops.detector import Detection, FrameDetections
 from open_hoops.pass_one import PassOneResult, TrackProfile, run_pass_one
 
 
@@ -40,8 +41,6 @@ def test_run_pass_one_collects_tracks(mock_detector_cls, mock_cap_cls):
     frames = [np.zeros((720, 1280, 3), dtype=np.uint8) for _ in range(5)]
     mock_cap.read.side_effect = [(True, f) for f in frames] + [(False, None)]
     mock_cap_cls.return_value = mock_cap
-
-    from open_hoops.detector import Detection, FrameDetections
 
     player_det = Detection(bbox=(100, 100, 200, 300), conf=0.9, class_name="player", track_id=1)
     ball_det = Detection(bbox=(400, 400, 420, 420), conf=0.5, class_name="ball")

@@ -27,6 +27,7 @@ frontend/            — React + TypeScript + Vite dashboard
 
 - **Never use `from __future__ import annotations`.** Use string annotations (`"ClassName"`) for forward references instead.
 - **Every `__init__.py` must be empty.** No re-exports. Import directly from the module where things are defined (e.g. `from open_hoops.service.team.models import Team`, not `from open_hoops.service import Team`).
+- **All imports at top of file.** No imports inside functions, methods, or local scopes. Only exception: when a circular import is truly unavoidable at module level.
 
 ## Key Conventions
 

@@ -1,4 +1,4 @@
-"""Factory Boy factories for backend test data."""
+"""Factory Boy factories for test data — shared across all test suites."""
 
 import datetime
 
@@ -45,6 +45,14 @@ class GameFactory(factory.alchemy.SQLAlchemyModelFactory):
     status = GameStatus.pending
     own_team = factory.SubFactory(TeamFactory, is_own=True)
     opponent_team = factory.SubFactory(TeamFactory, is_own=False)
+
+    @factory.post_generation
+    def files(obj, create, extracted, **kwargs):
+        pass
+
+    @factory.post_generation
+    def events(obj, create, extracted, **kwargs):
+        pass
 
 
 class GameFileFactory(factory.alchemy.SQLAlchemyModelFactory):

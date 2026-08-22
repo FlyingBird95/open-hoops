@@ -4,13 +4,12 @@ import numpy as np
 import pytest
 
 from open_hoops.analyzer import OpenHoop
-from open_hoops.models import GameStats, Video
+from open_hoops.models import GameStats, Roster, TeamRoster, TeamStats, Video
+from open_hoops.pass_one import PassOneResult, TrackProfile
 from open_hoops.tracker import TrackedFrame
 
 
 def _make_pass_one_result(n_frames=10, fps=30.0):
-    from open_hoops.pass_one import PassOneResult
-
     return PassOneResult(
         tracks={},
         ball_positions=[None] * n_frames,
@@ -65,8 +64,6 @@ def test_edit_overlay_returns_video():
         mock_writer = MagicMock()
         mock_writer_cls.return_value = mock_writer
 
-        from open_hoops.models import TeamStats
-
         fake_stats = GameStats(
             video=Video(path="fake.mp4"),
             duration_seconds=5 / 30.0,
@@ -101,9 +98,6 @@ def test_edit_overlay_raises_on_invalid_video():
 
 @patch("open_hoops.analyzer.run_pass_one")
 def test_extract_stats_uses_assignments(mock_p1):
-    from open_hoops.models import Roster, TeamRoster
-    from open_hoops.pass_one import PassOneResult, TrackProfile
-
     profile = TrackProfile(track_id=1)
     profile.team = "team_a"
     profile.jersey = 23

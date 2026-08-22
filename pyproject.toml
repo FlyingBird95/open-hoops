@@ -41,4 +41,4 @@ testpaths = ["open_hoops/tests"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["open_hoops*"]
+include = ["open_hoops*", "testhelpers*"]

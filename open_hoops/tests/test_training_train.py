@@ -1,7 +1,10 @@
 """Tests for open_hoops.training.train."""
 
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+from open_hoops.training.train import download_dataset, train
 
 
 @patch("open_hoops.training.train.YOLO")
@@ -17,8 +20,6 @@ def test_train_returns_best_model_path(mock_yolo_cls, tmp_path):
     mock_results = MagicMock()
     mock_results.save_dir = str(weights_dir.parent)
     mock_model.train.return_value = mock_results
-
-    from open_hoops.training.train import train
 
     result = train(tmp_path, base_model="yolo11x.pt", epochs=10, imgsz=640)
 
@@ -41,8 +42,6 @@ def test_train_uses_data_yaml(mock_yolo_cls, tmp_path):
     (tmp_path / "weights").mkdir()
     (tmp_path / "weights" / "best.pt").write_bytes(b"x")
 
-    from open_hoops.training.train import train
-
     train(tmp_path, epochs=5)
 
     call_kwargs = mock_model.train.call_args.kwargs
@@ -50,8 +49,6 @@ def test_train_uses_data_yaml(mock_yolo_cls, tmp_path):
 
 
 def test_download_dataset():
-    import sys
-
     mock_roboflow = MagicMock()
     sys.modules["roboflow"] = mock_roboflow
 
@@ -64,8 +61,6 @@ def test_download_dataset():
     mock_project.version.return_value.download.return_value = mock_ds
 
     try:
-        from open_hoops.training.train import download_dataset
-
         result = download_dataset("key123", "ws", "proj", 1, Path("/tmp/dest"))
 
         assert result == Path("/tmp/dataset")

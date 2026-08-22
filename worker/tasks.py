@@ -2,7 +2,9 @@ import os
 
 from sqlalchemy.orm import Session
 
+from open_hoops.analyzer import OpenHoop
 from open_hoops.core.database import get_session_factory, session_scope
+from open_hoops.models import Roster, TeamRoster, Video
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameFile, GameStatus
 from open_hoops.service.player.models import Player
@@ -30,10 +32,6 @@ def analyze_game(game_uid: str) -> None:
 
 
 def _run_analysis(db: Session, game: Game) -> None:
-    from open_hoops.analyzer import OpenHoop
-    from open_hoops.models import Roster, TeamRoster
-    from open_hoops.models import Video as OHVideo
-
     game.status = GameStatus.processing
     db.flush()
 
@@ -65,7 +63,7 @@ def _run_analysis(db: Session, game: Game) -> None:
     frame_offset = 0
 
     for file_path in file_paths:
-        oh = OpenHoop(OHVideo(path=file_path), roster=roster)
+        oh = OpenHoop(Video(path=file_path), roster=roster)
         stats = oh.extract_stats()
 
         total_duration += stats.duration_seconds

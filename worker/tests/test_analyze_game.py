@@ -1,17 +1,18 @@
 """Tests for worker.tasks.analyze_game — single-file, error handling, stats/events persistence."""
 
-import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy.orm import Session
 
+from open_hoops.models import BBox, GameStats, PlayerStats, TeamStats, Video
+from open_hoops.models import GameEvent as OHGameEvent
 from open_hoops.service.event.models import EventSource, GameEvent
-from open_hoops.service.game.models import Game, GameFile, GameStatus
+from open_hoops.service.game.models import Game, GameStatus
 from open_hoops.service.player.models import Player
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
-from open_hoops.service.team.models import Team, generate_uid
-from open_hoops.models import GameStats, PlayerStats, TeamStats
-from open_hoops.models import Video as OHVideo
+from testhelpers.lazy import LazyFixtureList
+from worker.tasks import analyze_game
 
 
 def make_stats(
@@ -35,7 +36,7 @@ def make_stats(
         )
     ]
     return GameStats(
-        video=OHVideo(path="uploads/fake.mp4"),
+        video=Video(path="uploads/fake.mp4"),
         duration_seconds=duration,
         fps=fps,
         teams=[
@@ -59,103 +60,58 @@ class _NoCloseSession:
         pass
 
 
-@pytest.fixture
-def game_setup(db_session):
-    """Create home/away teams, player, game with one file."""
-    home = Team(uid=generate_uid(), name="Home", is_own=True)
-    away = Team(uid=generate_uid(), name="Away", is_own=False)
-    db_session.add_all([home, away])
-    db_session.flush()
-
-    player = Player(uid=generate_uid(), jersey_number=23, name="Star", team_id=home.id)
-    db_session.add(player)
-    db_session.flush()
-
-    game = Game(
-        uid=generate_uid(),
-        name="Test Game",
-        date=datetime.date(2026, 8, 10),
-        own_team_id=home.id,
-        opponent_team_id=away.id,
-    )
-    db_session.add(game)
-    db_session.flush()
-
-    db_session.add(
-        GameFile(
-            uid=generate_uid(),
-            game_id=game.id,
-            file_path="uploads/game.mp4",
-            position=0,
-            original_filename="game.mp4",
-            size_bytes=1000,
-        )
-    )
-    db_session.commit()
-
-    return game, home, away, player
-
-
-def test_analyze_single_file(db_session, game_setup):
-    game, _home, _away, _player = game_setup
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_single_file(db: Session, game: Game, player: Player):
     mock_oh = MagicMock()
     mock_oh.extract_stats.return_value = make_stats(duration=90.0, fps=30.0)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh),
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
-    db_session.refresh(game)
+    db.refresh(game)
     assert game.status == GameStatus.done
     assert game.duration_seconds == 90.0
     assert game.fps == 30.0
     mock_oh.extract_stats.assert_called_once()
 
 
-def test_analyze_writes_team_stats(db_session, game_setup):
-    game, home, away, _player = game_setup
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_writes_team_stats(db: Session, game: Game, player: Player):
     mock_oh = MagicMock()
     mock_oh.extract_stats.return_value = make_stats(home_score=25, away_score=20)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh),
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
-    team_stats = db_session.query(GameTeamStats).filter(GameTeamStats.game_id == game.id).all()
+    team_stats = db.query(GameTeamStats).filter(GameTeamStats.game_id == game.id).all()
     assert len(team_stats) == 2
 
-    home_stats = next(ts for ts in team_stats if ts.team_id == home.id)
-    away_stats = next(ts for ts in team_stats if ts.team_id == away.id)
+    home_stats = next(ts for ts in team_stats if ts.team_id == game.own_team.id)
+    away_stats = next(ts for ts in team_stats if ts.team_id == game.opponent_team.id)
     assert home_stats.score == 25
     assert home_stats.possession_pct == 55.0
     assert away_stats.score == 20
     assert away_stats.possession_pct == 45.0
 
 
-def test_analyze_writes_player_stats(db_session, game_setup):
-    game, _home, _away, player = game_setup
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_writes_player_stats(db: Session, game: Game, player: Player):
     mock_oh = MagicMock()
     mock_oh.extract_stats.return_value = make_stats()
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh),
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
-    player_stats = (
-        db_session.query(GamePlayerStats).filter(GamePlayerStats.game_id == game.id).all()
-    )
+    player_stats = db.query(GamePlayerStats).filter(GamePlayerStats.game_id == game.id).all()
     assert len(player_stats) == 1
     ps = player_stats[0]
     assert ps.player_id == player.id
@@ -168,10 +124,8 @@ def test_analyze_writes_player_stats(db_session, game_setup):
     assert ps.possession_frames == 200
 
 
-def test_analyze_writes_events(db_session, game_setup):
-    from open_hoops.models import BBox
-    from open_hoops.models import GameEvent as OHGameEvent
-
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_writes_events(db: Session, game: Game, player: Player):
     events = [
         OHGameEvent(
             type="shot",
@@ -190,30 +144,24 @@ def test_analyze_writes_events(db_session, game_setup):
             bbox=None,
         ),
     ]
-    game, home, away, player = game_setup
     mock_oh = MagicMock()
     mock_oh.extract_stats.return_value = make_stats(events=events)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh),
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
     db_events = (
-        db_session.query(GameEvent)
-        .filter(GameEvent.game_id == game.id)
-        .order_by(GameEvent.frame)
-        .all()
+        db.query(GameEvent).filter(GameEvent.game_id == game.id).order_by(GameEvent.frame).all()
     )
     assert len(db_events) == 2
 
     ev1 = db_events[0]
     assert ev1.type == "shot"
     assert ev1.frame == 100
-    assert ev1.team_id == home.id
+    assert ev1.team_id == game.own_team.id
     assert ev1.player_id == player.id
     assert ev1.source == EventSource.analysis
     assert ev1.bbox_x1 == 10
@@ -223,27 +171,22 @@ def test_analyze_writes_events(db_session, game_setup):
 
     ev2 = db_events[1]
     assert ev2.type == "pass"
-    assert ev2.team_id == away.id
+    assert ev2.team_id == game.opponent_team.id
     assert ev2.player_id is None
     assert ev2.bbox_x1 is None
 
 
-def test_analyze_game_not_found(db_session):
-    """analyze_game returns early if game UID doesn't exist."""
-    with patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)):
-        from worker.tasks import analyze_game
-
+def test_analyze_game_not_found(db: Session):
+    with patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)):
         analyze_game("nonexistent_uid_1234567890ab")
 
 
-def test_analyze_sets_processing_status(db_session, game_setup):
-    """Game status transitions to processing before analysis starts."""
-    game, _home, _away, _player = game_setup
-
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_sets_processing_status(db: Session, game: Game, player: Player):
     statuses_seen = []
 
     def capture_status(*args, **kwargs):
-        db_session.refresh(game)
+        db.refresh(game)
         statuses_seen.append(game.status)
         return make_stats()
 
@@ -251,29 +194,24 @@ def test_analyze_sets_processing_status(db_session, game_setup):
     mock_oh.extract_stats.side_effect = capture_status
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh),
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
     assert GameStatus.processing in statuses_seen
 
 
-def test_analyze_failure_sets_failed_status(db_session, game_setup):
-    """If analysis raises, game status becomes failed."""
-    game, _home, _away, _player = game_setup
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_failure_sets_failed_status(db: Session, game: Game, player: Player):
     mock_oh = MagicMock()
     mock_oh.extract_stats.side_effect = RuntimeError("Model crash")
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh),
+        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
-        from worker.tasks import analyze_game
-
         analyze_game(game.uid)
 
-    db_session.refresh(game)
+    db.refresh(game)
     assert game.status == GameStatus.failed

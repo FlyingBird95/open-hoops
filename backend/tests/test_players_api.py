@@ -1,31 +1,13 @@
-import pytest
 from app.main import app
 from fastapi.testclient import TestClient
 
-from open_hoops.core.database import Base
-from tests.conftest import engine
-
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    Base.metadata.create_all(engine)
-    yield
-    Base.metadata.drop_all(engine)
-
+from open_hoops.service.game.models import Game
 
 client = TestClient(app)
 
 
-@pytest.fixture
-def team_uid():
-    resp = client.post(
-        "/api/teams",
-        json={"data": {"type": "teams", "attributes": {"name": "Lakers", "is_own": True}}},
-    )
-    return resp.json()["data"]["uid"]
-
-
-def test_create_player(team_uid):
+def test_create_player(game: Game):
+    team_uid = game.own_team.uid
     resp = client.post(
         "/api/players",
         json={
@@ -47,7 +29,8 @@ def test_list_players_requires_team():
     assert resp.status_code == 422
 
 
-def test_list_players(team_uid):
+def test_list_players(game: Game):
+    team_uid = game.own_team.uid
     for num in (23, 3):
         client.post(
             "/api/players",
@@ -63,7 +46,8 @@ def test_list_players(team_uid):
     assert len(resp.json()["data"]) == 2
 
 
-def test_update_player(team_uid):
+def test_update_player(game: Game):
+    team_uid = game.own_team.uid
     resp = client.post(
         "/api/players",
         json={
@@ -82,7 +66,8 @@ def test_update_player(team_uid):
     assert resp.json()["data"]["attributes"]["name"] == "LeBron James"
 
 
-def test_delete_player(team_uid):
+def test_delete_player(game: Game):
+    team_uid = game.own_team.uid
     resp = client.post(
         "/api/players",
         json={

@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from open_hoops.training.evaluate import evaluate, main
+
 
 @patch("open_hoops.training.evaluate.YOLO")
 def test_evaluate_returns_metrics(mock_yolo_cls):
@@ -14,8 +16,6 @@ def test_evaluate_returns_metrics(mock_yolo_cls):
     mock_results.box.maps = [0.9, 0.8, 0.6]
     mock_results.names = {0: "ball", 1: "player", 2: "hoop"}
     mock_model.val.return_value = mock_results
-
-    from open_hoops.training.evaluate import evaluate
 
     metrics = evaluate("model.pt", "data.yaml")
 
@@ -39,8 +39,6 @@ def test_evaluate_main(mock_yolo_cls, capsys):
     mock_model.val.return_value = mock_results
 
     with patch("sys.argv", ["evaluate", "--model", "test.pt", "--data", "test.yaml"]):
-        from open_hoops.training.evaluate import main
-
         main()
 
     output = capsys.readouterr().out

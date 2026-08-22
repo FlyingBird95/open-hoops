@@ -316,39 +316,49 @@ class PlayerFactory(factory.alchemy.SQLAlchemyModelFactory):
     team_id = factory.LazyAttribute(lambda o: o.team.id)
 ```
 
-### Using Factories in Tests
+### Using Auto-Fixtures (Preferred)
 
-Request the `db` fixture to get a session with factories wired up. Then call factories directly:
+**Always prefer auto-fixtures over calling factories inside tests.** Calling a factory inside a test function is a code smell — it means the test isn't using pytest-factoryboy properly.
+
+Use registered auto-fixtures by requesting them as parameters:
 
 ```python
-from tests.factories import TeamFactory, PlayerFactory
-
-def test_something(db: Session) -> None:
-    team = TeamFactory(name="Lakers", is_own=True)
-    player = PlayerFactory(team=team, jersey_number=23)
-    # team and player are committed to the test DB
+def test_get_player(player: Player) -> None:
+    resp = client.get(f"/api/players/{player.uid}")
+    assert resp.status_code == 200
 ```
 
-Or use registered fixtures for simple cases:
+Override specific attributes via `@pytest.mark.parametrize`:
 
 ```python
-def test_with_fixture(team: Team) -> None:
-    assert team.uid is not None
+@pytest.mark.parametrize("player__name", [None])
+def test_get_player_no_name(player: Player) -> None:
+    resp = client.get(f"/api/players/{player.uid}")
+    assert resp.json()["data"]["attributes"]["name"] is None
 ```
 
-### Overriding Factory Defaults with Fixtures
-
-Use `@pytest.fixture` to compose factories for common test scenarios:
+Use `LazyFixture` for dynamic overrides and `LazyFixtureList` for post-generation list fields:
 
 ```python
-@pytest.fixture
-def game_with_stats(db: Session) -> dict[str, str]:
-    home = TeamFactory(name="Lakers", is_own=True)
-    away = TeamFactory(name="Celtics", is_own=False)
-    game = GameFactory(own_team=home, opponent_team=away)
-    GameTeamStatsFactory(game=game, team=home, score=105)
-    GameTeamStatsFactory(game=game, team=away, score=98)
-    return {"game_uid": game.uid, "home_uid": home.uid, "away_uid": away.uid}
+from pytest_factoryboy import LazyFixture
+from testhelpers.lazy import LazyFixtureList
+
+@pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
+def test_analyze_single_file(game: Game, player: Player):
+    ...
+```
+
+### When Inline Factories Are Acceptable
+
+Only use factories inside a test when you need **multiple objects of the same type with different attribute values** that can't be achieved with auto-fixtures:
+
+```python
+def test_list_events_filter_by_type(game: Game) -> None:
+    GameEventFactory(game=game, type="shot", timestamp_sec=10.0, frame=300)
+    GameEventFactory(game=game, type="pass", timestamp_sec=5.0, frame=150)
+
+    resp = client.get(f"/api/games/{game.uid}/events?type=shot")
+    assert resp.json()["meta"]["count"] == 1
 ```
 
 ### Parametrize
@@ -356,20 +366,17 @@ def game_with_stats(db: Session) -> dict[str, str]:
 Use `@pytest.mark.parametrize` to test multiple inputs/outcomes:
 
 ```python
-import pytest
-
 @pytest.mark.parametrize(
     ("event_type", "expected_status"),
     [
         ("shot", 200),
         ("pass", 200),
-        ("dunk", 422),  # invalid type
+        ("dunk", 422),
     ],
 )
 def test_create_event_type_validation(
-    db: Session, event_type: str, expected_status: int
+    game: Game, event_type: str, expected_status: int
 ) -> None:
-    game = GameFactory()
     resp = client.post(
         f"/api/games/{game.uid}/events",
         json={
@@ -380,23 +387,6 @@ def test_create_event_type_validation(
         },
     )
     assert resp.status_code == expected_status
-```
-
-For fixtures with parametrize, use `indirect`:
-
-```python
-@pytest.fixture
-def team_with_players(db: Session, request: pytest.FixtureRequest) -> Team:
-    count = request.param
-    team = TeamFactory()
-    for i in range(count):
-        PlayerFactory(team=team, jersey_number=i + 1)
-    return team
-
-@pytest.mark.parametrize("team_with_players", [0, 1, 5], indirect=True)
-def test_list_players_count(team_with_players: Team) -> None:
-    resp = client.get(f"/api/players?team={team_with_players.uid}")
-    assert resp.json()["meta"]["count"] == len(team_with_players.players)
 ```
 
 ### Type Annotations

@@ -1,17 +1,5 @@
-import pytest
 from app.main import app
 from fastapi.testclient import TestClient
-
-from open_hoops.core.database import Base
-from tests.conftest import engine
-
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    Base.metadata.create_all(engine)
-    yield
-    Base.metadata.drop_all(engine)
-
 
 client = TestClient(app)
 
