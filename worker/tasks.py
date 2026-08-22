@@ -21,7 +21,8 @@ SessionLocal = get_session_factory(database_url)
 
 @celery.task(name="worker.tasks.analyze_game")
 def analyze_game(game_uid: str) -> None:
-    from open_hoops import OpenHoop, Roster, TeamRoster
+    from open_hoops.analyzer import OpenHoop
+    from open_hoops.models import Roster, TeamRoster
     from open_hoops.models import Video as OHVideo
 
     db = SessionLocal()

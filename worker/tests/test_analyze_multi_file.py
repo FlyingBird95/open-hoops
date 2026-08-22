@@ -1,7 +1,7 @@
 import datetime
 from unittest.mock import MagicMock, patch
 
-from open_hoops.db.models import Game, GameFile, GameStatus, Team, generate_uid
+from open_hoops.db import Game, GameFile, GameStatus, Team, generate_uid
 from open_hoops.models import GameStats, TeamStats
 from open_hoops.models import Video as OHVideo
 
@@ -66,7 +66,7 @@ def test_analyze_merges_multiple_files(db_session, monkeypatch):
 
     with (
         patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db_session)),
-        patch("open_hoops.OpenHoop", return_value=mock_oh) as MockOH,
+        patch("open_hoops.analyzer.OpenHoop", return_value=mock_oh) as MockOH,
     ):
         from worker.tasks import analyze_game
 
