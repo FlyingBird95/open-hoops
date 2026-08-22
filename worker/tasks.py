@@ -1,6 +1,7 @@
 import os
 
 from open_hoops.db import (
+    EventSource,
     Game,
     GameEvent,
     GameFile,
@@ -166,6 +167,7 @@ def analyze_game(game_uid: str) -> None:
                     timestamp_sec=ev["timestamp_sec"],
                     player_id=player.id if player else None,
                     team_id=team_id,
+                    source=EventSource.analysis,
                     bbox_x1=bbox.x1 if bbox else None,
                     bbox_y1=bbox.y1 if bbox else None,
                     bbox_x2=bbox.x2 if bbox else None,
