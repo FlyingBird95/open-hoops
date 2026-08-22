@@ -6,6 +6,7 @@ from app.database import get_db, get_or_404
 from app.jsonapi import document
 from open_hoops.service.player.models import Player
 
+from .router import router
 from .serialize import serialize_player
 
 
@@ -23,6 +24,7 @@ class PlayerPatchRequest(BaseModel):
     data: PlayerPatchData
 
 
+@router.patch("/{uid}")
 def update_player(uid: str, body: PlayerPatchRequest, db: Session = Depends(get_db)):
     player = get_or_404(db, Player, uid)
     for key, value in body.data.attributes.model_dump(exclude_unset=True).items():

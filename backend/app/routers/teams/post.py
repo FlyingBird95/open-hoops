@@ -7,6 +7,7 @@ from app.database import get_db
 from app.jsonapi import document
 from open_hoops.service.team.models import Team
 
+from .router import router
 from .serialize import serialize_team
 
 
@@ -26,6 +27,7 @@ class TeamCreateRequest(BaseModel):
     data: TeamCreateData
 
 
+@router.post("")
 def create_team(body: TeamCreateRequest, db: Session = Depends(get_db)):
     attrs = body.data.attributes
     team = Team(

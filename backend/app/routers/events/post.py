@@ -2,13 +2,14 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db, get_or_404
+from app.database import get_db
 from app.jsonapi import document
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game
 from open_hoops.service.player.models import Player
 from open_hoops.service.team.models import Team
 
+from .router import router
 from .serialize import serialize_event
 
 EVENT_TYPES = {
@@ -31,6 +32,7 @@ class EventCreateAttributes(BaseModel):
     type: str
     timestamp_sec: float
     frame: int
+    game_uid: str
     team_uid: str | None = None
     player_uid: str | None = None
     player2_uid: str | None = None
@@ -45,10 +47,14 @@ class EventCreateRequest(BaseModel):
     data: EventCreateData
 
 
-def create_event(uid: str, body: EventCreateRequest, db: Session = Depends(get_db)):
-    game = get_or_404(db, Game, uid)
-
+@router.post("")
+def create_event(body: EventCreateRequest, db: Session = Depends(get_db)):
     attrs = body.data.attributes
+
+    game = db.query(Game).filter(Game.uid == attrs.game_uid).first()
+    if not game:
+        raise HTTPException(422, "Game not found")
+
     if attrs.type not in EVENT_TYPES:
         raise HTTPException(422, f"Invalid event type: {attrs.type}")
 

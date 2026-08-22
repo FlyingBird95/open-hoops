@@ -5,20 +5,20 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db, get_or_404
 from open_hoops.service.event.models import GameEvent
-from open_hoops.service.game.models import Game, GameFile
+from open_hoops.service.game.models import GameFile
+
+from .router import router
 
 
-def get_event_frame(uid: str, event_id: int, db: Session = Depends(get_db)):
-    game = get_or_404(db, Game, uid)
-
-    event = (
-        db.query(GameEvent).filter(GameEvent.id == event_id, GameEvent.game_id == game.id).first()
-    )
-    if not event:
-        raise HTTPException(404, "Event not found")
+@router.get("/{uid}/frame")
+def get_event_frame(uid: str, db: Session = Depends(get_db)):
+    event = get_or_404(db, GameEvent, uid, label="Event")
 
     game_files = (
-        db.query(GameFile).filter(GameFile.game_id == game.id).order_by(GameFile.position).all()
+        db.query(GameFile)
+        .filter(GameFile.game_id == event.game_id)
+        .order_by(GameFile.position)
+        .all()
     )
     if not game_files:
         raise HTTPException(404, "No video files for game")

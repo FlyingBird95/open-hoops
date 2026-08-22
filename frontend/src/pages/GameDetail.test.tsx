@@ -10,11 +10,13 @@ vi.mock("../lib/api", () => ({
     upload: vi.fn(),
     update: vi.fn(),
     stats: vi.fn(),
-    events: vi.fn(),
     files: vi.fn(),
-    createEvent: vi.fn(),
-    updateEvent: vi.fn(),
-    deleteEvent: vi.fn(),
+  },
+  eventsApi: {
+    list: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
   teamsApi: { list: vi.fn() },
   playersApi: { list: vi.fn() },
@@ -22,7 +24,7 @@ vi.mock("../lib/api", () => ({
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }));
 
-import { gamesApi, teamsApi, playersApi } from "../lib/api";
+import { gamesApi, eventsApi, teamsApi, playersApi } from "../lib/api";
 import type { Game, GameStatsResponse, GameEventData, Team, Player } from "../lib/api";
 import GameDetail from "./GameDetail";
 
@@ -93,12 +95,11 @@ const mockArchivedGame: Game = {
 
 const mockStats: GameStatsResponse = {
   team_stats: [
-    { uid: "ts1", score: 78, possession_pct: 0.55, team_uid: mockOwnTeam.uid },
-    { uid: "ts2", score: 72, possession_pct: 0.45, team_uid: mockOpponent.uid },
+    { score: 78, possession_pct: 0.55, team_uid: mockOwnTeam.uid },
+    { score: 72, possession_pct: 0.45, team_uid: mockOpponent.uid },
   ],
   player_stats: [
     {
-      uid: "ps1",
       jersey_number: 23,
       distance_covered_m: 1200,
       shot_attempts: 15,
@@ -110,7 +111,6 @@ const mockStats: GameStatsResponse = {
       player_uid: "player001",
     },
     {
-      uid: "ps2",
       jersey_number: 11,
       distance_covered_m: 900,
       shot_attempts: 10,
@@ -216,7 +216,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockGame.uid);
 
@@ -229,7 +229,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockGame.uid);
 
@@ -247,7 +247,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockGame.uid);
 
@@ -269,7 +269,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockGame.uid);
 
@@ -283,7 +283,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockArchivedGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockArchivedGame.uid);
 
@@ -296,7 +296,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockGame.uid);
 
@@ -309,7 +309,7 @@ describe("GameDetail", () => {
     setupDefaultMocks();
     vi.mocked(gamesApi.get).mockResolvedValue(mockGame);
     vi.mocked(gamesApi.stats).mockResolvedValue(mockStats);
-    vi.mocked(gamesApi.events).mockResolvedValue(mockEvents);
+    vi.mocked(eventsApi.list).mockResolvedValue(mockEvents);
 
     renderWithProviders(mockGame.uid);
 

@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db, get_or_404
 from app.jsonapi import document
 from open_hoops.service.event.models import GameEvent
-from open_hoops.service.game.models import Game
 from open_hoops.service.player.models import Player
 from open_hoops.service.team.models import Team
 
-from .events_post import EVENT_TYPES
+from .post import EVENT_TYPES
+from .router import router
 from .serialize import serialize_event
 
 
@@ -29,16 +29,9 @@ class EventPatchRequest(BaseModel):
     data: EventPatchData
 
 
-def patch_event(uid: str, event_id: str, body: EventPatchRequest, db: Session = Depends(get_db)):
-    game = get_or_404(db, Game, uid)
-
-    event = (
-        db.query(GameEvent)
-        .filter(GameEvent.id == int(event_id), GameEvent.game_id == game.id)
-        .first()
-    )
-    if not event:
-        raise HTTPException(404, "Event not found")
+@router.patch("/{uid}")
+def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(get_db)):
+    event = get_or_404(db, GameEvent, uid, label="Event")
 
     attrs = body.data.attributes
 

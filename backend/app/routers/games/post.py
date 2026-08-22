@@ -13,9 +13,11 @@ from app.jsonapi import document
 from open_hoops.service.game.models import Game, GameFile
 from open_hoops.service.team.models import Team, generate_uid
 
+from .router import router
 from .serialize import serialize_game
 
 
+@router.post("")
 def upload_game(
     name: str = Form(...),
     date: date_type = Form(...),

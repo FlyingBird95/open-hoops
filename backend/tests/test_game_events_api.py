@@ -9,11 +9,11 @@ from testhelpers.factories import GameEventFactory, PlayerFactory
 client = TestClient(app)
 
 
-# --- GET /api/games/{uid}/events ---
+# --- GET /api/events?game={game_uid} ---
 
 
 def test_list_events_empty(game: Game) -> None:
-    resp = client.get(f"/api/games/{game.uid}/events")
+    resp = client.get("/api/events", params={"game": game.uid})
     assert resp.status_code == 200
     assert resp.json()["data"] == []
     assert resp.json()["meta"]["count"] == 0
@@ -23,7 +23,7 @@ def test_list_events(game: Game) -> None:
     GameEventFactory(game=game, type="pass", timestamp_sec=5.0, frame=150)
     GameEventFactory(game=game, type="shot", timestamp_sec=10.5, frame=315)
 
-    resp = client.get(f"/api/games/{game.uid}/events")
+    resp = client.get("/api/events", params={"game": game.uid})
     assert resp.status_code == 200
     assert resp.json()["meta"]["count"] == 2
     events = resp.json()["data"]
@@ -35,27 +35,47 @@ def test_list_events_filter_by_type(game: Game) -> None:
     GameEventFactory(game=game, type="shot", timestamp_sec=10.0, frame=300)
     GameEventFactory(game=game, type="pass", timestamp_sec=5.0, frame=150)
 
-    resp = client.get(f"/api/games/{game.uid}/events?type=shot")
+    resp = client.get("/api/events", params={"game": game.uid, "type": "shot"})
     assert resp.status_code == 200
     assert resp.json()["meta"]["count"] == 1
     assert resp.json()["data"][0]["attributes"]["type"] == "shot"
 
 
 def test_list_events_game_not_found() -> None:
-    resp = client.get("/api/games/nonexistent/events")
+    resp = client.get("/api/events", params={"game": "nonexistent"})
     assert resp.status_code == 404
 
 
-# --- POST /api/games/{uid}/events ---
+# --- GET /api/events/{uid} ---
+
+
+def test_get_event(game: Game, game_event: GameEvent) -> None:
+    resp = client.get(f"/api/events/{game_event.uid}")
+    assert resp.status_code == 200
+    assert resp.json()["data"]["uid"] == game_event.uid
+    assert resp.json()["data"]["attributes"]["type"] == game_event.type
+
+
+def test_get_event_not_found() -> None:
+    resp = client.get("/api/events/nonexistent")
+    assert resp.status_code == 404
+
+
+# --- POST /api/events ---
 
 
 def test_create_event_minimal(game: Game) -> None:
     resp = client.post(
-        f"/api/games/{game.uid}/events",
+        "/api/events",
         json={
             "data": {
                 "type": "game_events",
-                "attributes": {"type": "rebound", "timestamp_sec": 22.0, "frame": 660},
+                "attributes": {
+                    "type": "rebound",
+                    "timestamp_sec": 22.0,
+                    "frame": 660,
+                    "game_uid": game.uid,
+                },
             }
         },
     )
@@ -71,7 +91,7 @@ def test_create_event_minimal(game: Game) -> None:
 def test_create_event_with_team_and_player(game: Game) -> None:
     player = PlayerFactory(team=game.own_team, jersey_number=23, name="LeBron")
     resp = client.post(
-        f"/api/games/{game.uid}/events",
+        "/api/events",
         json={
             "data": {
                 "type": "game_events",
@@ -79,6 +99,7 @@ def test_create_event_with_team_and_player(game: Game) -> None:
                     "type": "shot",
                     "timestamp_sec": 15.5,
                     "frame": 465,
+                    "game_uid": game.uid,
                     "team_uid": game.own_team.uid,
                     "player_uid": player.uid,
                 },
@@ -96,7 +117,7 @@ def test_create_event_with_player2(game: Game) -> None:
     player2 = PlayerFactory(team=game.own_team, jersey_number=3, name="AD")
 
     resp = client.post(
-        f"/api/games/{game.uid}/events",
+        "/api/events",
         json={
             "data": {
                 "type": "game_events",
@@ -104,6 +125,7 @@ def test_create_event_with_player2(game: Game) -> None:
                     "type": "pass",
                     "timestamp_sec": 8.0,
                     "frame": 240,
+                    "game_uid": game.uid,
                     "player_uid": player1.uid,
                     "player2_uid": player2.uid,
                 },
@@ -128,11 +150,16 @@ def test_create_event_with_player2(game: Game) -> None:
 )
 def test_create_event_type_validation(game: Game, event_type: str, expected_status: int) -> None:
     resp = client.post(
-        f"/api/games/{game.uid}/events",
+        "/api/events",
         json={
             "data": {
                 "type": "game_events",
-                "attributes": {"type": event_type, "timestamp_sec": 1.0, "frame": 30},
+                "attributes": {
+                    "type": event_type,
+                    "timestamp_sec": 1.0,
+                    "frame": 30,
+                    "game_uid": game.uid,
+                },
             }
         },
     )
@@ -141,15 +168,20 @@ def test_create_event_type_validation(game: Game, event_type: str, expected_stat
 
 def test_create_event_game_not_found() -> None:
     resp = client.post(
-        "/api/games/nonexistent/events",
+        "/api/events",
         json={
             "data": {
                 "type": "game_events",
-                "attributes": {"type": "shot", "timestamp_sec": 1.0, "frame": 30},
+                "attributes": {
+                    "type": "shot",
+                    "timestamp_sec": 1.0,
+                    "frame": 30,
+                    "game_uid": "nonexistent",
+                },
             }
         },
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 422
 
 
 @pytest.mark.parametrize(
@@ -162,23 +194,29 @@ def test_create_event_game_not_found() -> None:
 )
 def test_create_event_invalid_reference(game: Game, field: str, bad_value: str) -> None:
     resp = client.post(
-        f"/api/games/{game.uid}/events",
+        "/api/events",
         json={
             "data": {
                 "type": "game_events",
-                "attributes": {"type": "shot", "timestamp_sec": 1.0, "frame": 30, field: bad_value},
+                "attributes": {
+                    "type": "shot",
+                    "timestamp_sec": 1.0,
+                    "frame": 30,
+                    "game_uid": game.uid,
+                    field: bad_value,
+                },
             }
         },
     )
     assert resp.status_code == 422
 
 
-# --- PATCH /api/games/{uid}/events/{event_id} ---
+# --- PATCH /api/events/{uid} ---
 
 
 def test_patch_event_type(game: Game, game_event: GameEvent) -> None:
     resp = client.patch(
-        f"/api/games/{game.uid}/events/{game_event.id}",
+        f"/api/events/{game_event.uid}",
         json={"data": {"type": "game_events", "attributes": {"type": "make"}}},
     )
     assert resp.status_code == 200
@@ -187,7 +225,7 @@ def test_patch_event_type(game: Game, game_event: GameEvent) -> None:
 
 def test_patch_event_assign_team(game: Game, game_event: GameEvent) -> None:
     resp = client.patch(
-        f"/api/games/{game.uid}/events/{game_event.id}",
+        f"/api/events/{game_event.uid}",
         json={
             "data": {
                 "type": "game_events",
@@ -205,7 +243,7 @@ def test_patch_event_clear_team(game: Game) -> None:
     )
 
     resp = client.patch(
-        f"/api/games/{game.uid}/events/{event.id}",
+        f"/api/events/{event.uid}",
         json={"data": {"type": "game_events", "attributes": {"team_uid": None}}},
     )
     assert resp.status_code == 200
@@ -214,44 +252,31 @@ def test_patch_event_clear_team(game: Game) -> None:
 
 def test_patch_event_invalid_type(game: Game, game_event: GameEvent) -> None:
     resp = client.patch(
-        f"/api/games/{game.uid}/events/{game_event.id}",
+        f"/api/events/{game_event.uid}",
         json={"data": {"type": "game_events", "attributes": {"type": "dunk"}}},
     )
     assert resp.status_code == 422
 
 
-def test_patch_event_not_found(game: Game) -> None:
+def test_patch_event_not_found() -> None:
     resp = client.patch(
-        f"/api/games/{game.uid}/events/99999",
+        "/api/events/nonexistent",
         json={"data": {"type": "game_events", "attributes": {"type": "shot"}}},
     )
     assert resp.status_code == 404
 
 
-def test_patch_event_game_not_found() -> None:
-    resp = client.patch(
-        "/api/games/nonexistent/events/1",
-        json={"data": {"type": "game_events", "attributes": {"type": "shot"}}},
-    )
-    assert resp.status_code == 404
-
-
-# --- DELETE /api/games/{uid}/events/{event_id} ---
+# --- DELETE /api/events/{uid} ---
 
 
 def test_delete_event(game: Game, game_event: GameEvent) -> None:
-    resp = client.delete(f"/api/games/{game.uid}/events/{game_event.id}")
+    resp = client.delete(f"/api/events/{game_event.uid}")
     assert resp.status_code == 204
 
-    resp = client.get(f"/api/games/{game.uid}/events")
+    resp = client.get("/api/events", params={"game": game.uid})
     assert resp.json()["meta"]["count"] == 0
 
 
-def test_delete_event_not_found(game: Game) -> None:
-    resp = client.delete(f"/api/games/{game.uid}/events/99999")
-    assert resp.status_code == 404
-
-
-def test_delete_event_game_not_found() -> None:
-    resp = client.delete("/api/games/nonexistent/events/1")
+def test_delete_event_not_found() -> None:
+    resp = client.delete("/api/events/nonexistent")
     assert resp.status_code == 404

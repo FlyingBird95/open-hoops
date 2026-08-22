@@ -11,7 +11,7 @@ from open_hoops.service.game.models import Game, GameFile
 client = TestClient(app)
 
 
-@patch("app.routers.games.frame.cv2")
+@patch("app.routers.events.frame.cv2")
 def test_get_event_frame(
     mock_cv2: MagicMock, game: Game, game_file: GameFile, game_event: GameEvent
 ) -> None:
@@ -27,12 +27,12 @@ def test_get_event_frame(
     mock_cv2.imencode.return_value = (True, np.array([0xFF, 0xD8, 0xFF], dtype=np.uint8))
     mock_cv2.IMWRITE_JPEG_QUALITY = 1
 
-    resp = client.get(f"/api/games/{game.uid}/events/{game_event.id}/frame")
+    resp = client.get(f"/api/events/{game_event.uid}/frame")
     assert resp.status_code == 200
     assert resp.headers["content-type"] == "image/jpeg"
 
 
-@patch("app.routers.games.frame.cv2")
+@patch("app.routers.events.frame.cv2")
 def test_get_event_frame_with_bbox(
     mock_cv2: MagicMock, game: Game, game_file: GameFile, game_event: GameEvent, db: Session
 ) -> None:
@@ -55,22 +55,17 @@ def test_get_event_frame_with_bbox(
     mock_cv2.FONT_HERSHEY_SIMPLEX = 0
     mock_cv2.getTextSize.return_value = ((50, 15), 0)
 
-    resp = client.get(f"/api/games/{game.uid}/events/{game_event.id}/frame")
+    resp = client.get(f"/api/events/{game_event.uid}/frame")
     assert resp.status_code == 200
     mock_cv2.rectangle.assert_called()
 
 
-def test_get_event_frame_game_not_found() -> None:
-    resp = client.get("/api/games/nonexistent/events/1/frame")
+def test_get_event_frame_not_found() -> None:
+    resp = client.get("/api/events/nonexistent/frame")
     assert resp.status_code == 404
 
 
-def test_get_event_frame_event_not_found(game: Game) -> None:
-    resp = client.get(f"/api/games/{game.uid}/events/99999/frame")
-    assert resp.status_code == 404
-
-
-@patch("app.routers.games.frame.cv2")
+@patch("app.routers.events.frame.cv2")
 def test_get_event_frame_video_open_fails(
     mock_cv2: MagicMock, game: Game, game_file: GameFile, game_event: GameEvent
 ) -> None:
@@ -78,5 +73,5 @@ def test_get_event_frame_video_open_fails(
     mock_cap.isOpened.return_value = False
     mock_cv2.VideoCapture.return_value = mock_cap
 
-    resp = client.get(f"/api/games/{game.uid}/events/{game_event.id}/frame")
+    resp = client.get(f"/api/events/{game_event.uid}/frame")
     assert resp.status_code == 500

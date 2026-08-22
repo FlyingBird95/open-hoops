@@ -5,9 +5,11 @@ from app.database import get_db, get_or_404
 from app.jsonapi import document
 from open_hoops.service.player.models import Player
 
+from .router import router
 from .serialize import serialize_player
 
 
+@router.get("/{uid}")
 def get_player(uid: str, db: Session = Depends(get_db)):
     player = get_or_404(db, Player, uid)
     return document(data=serialize_player(player))

@@ -9,6 +9,12 @@ export interface ResourceObject<T> {
   relationships?: Record<string, { data: { type: string; uid: string } | null }>;
 }
 
+export interface EmbeddedObject<T> {
+  type: string;
+  attributes: T;
+  relationships?: Record<string, { data: { type: string; uid: string } | null }>;
+}
+
 export interface JsonApiDocument<T> {
   data: ResourceObject<T> | ResourceObject<T>[];
   meta?: { count?: number };
@@ -80,14 +86,12 @@ export interface Game {
 }
 
 export interface GameTeamStatsData {
-  uid: string;
   score: number;
   possession_pct: number;
   team_uid: string;
 }
 
 export interface GamePlayerStatsData {
-  uid: string;
   jersey_number: number | null;
   distance_covered_m: number;
   shot_attempts: number;
@@ -207,13 +211,11 @@ export const gamesApi = {
     const { data } = await client.get(`/games/${uid}/stats`);
     const raw = data.data;
     return {
-      team_stats: raw.team_stats.map((r: ResourceObject<Record<string, unknown>>) => ({
-        uid: r.uid,
+      team_stats: raw.team_stats.map((r: EmbeddedObject<Record<string, unknown>>) => ({
         ...r.attributes,
         team_uid: r.relationships?.team?.data?.uid,
       })),
-      player_stats: raw.player_stats.map((r: ResourceObject<Record<string, unknown>>) => ({
-        uid: r.uid,
+      player_stats: raw.player_stats.map((r: EmbeddedObject<Record<string, unknown>>) => ({
         ...r.attributes,
         team_uid: r.relationships?.team?.data?.uid,
         player_uid: r.relationships?.player?.data?.uid,
@@ -224,10 +226,13 @@ export const gamesApi = {
     const { data } = await client.get(`/games/${uid}/files`);
     return extractMany(data) as unknown as GameFileData[];
   },
-  events: async (uid: string, type?: string): Promise<GameEventData[]> => {
-    const params: Record<string, string> = {};
+};
+
+export const eventsApi = {
+  list: async (gameUid: string, type?: string): Promise<GameEventData[]> => {
+    const params: Record<string, string> = { game: gameUid };
     if (type) params.type = type;
-    const { data } = await client.get(`/games/${uid}/events`, { params });
+    const { data } = await client.get("/events", { params });
     const resources = data.data as ResourceObject<Record<string, unknown>>[];
     return resources.map((r) => ({
       uid: r.uid,
@@ -237,8 +242,21 @@ export const gamesApi = {
       player2_uid: r.relationships?.player2?.data?.uid,
     })) as unknown as GameEventData[];
   },
-  createEvent: async (gameUid: string, attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string; player2_uid?: string }): Promise<GameEventData> => {
-    const { data } = await client.post(`/games/${gameUid}/events`, {
+  create: async (gameUid: string, attrs: { type: string; timestamp_sec: number; frame: number; team_uid?: string; player_uid?: string; player2_uid?: string }): Promise<GameEventData> => {
+    const { data } = await client.post("/events", {
+      data: { type: "game_events", attributes: { ...attrs, game_uid: gameUid } },
+    });
+    const r = data.data as ResourceObject<Record<string, unknown>>;
+    return {
+      uid: r.uid,
+      ...r.attributes,
+      team_uid: r.relationships?.team?.data?.uid,
+      player_uid: r.relationships?.player?.data?.uid,
+      player2_uid: r.relationships?.player2?.data?.uid,
+    } as unknown as GameEventData;
+  },
+  update: async (eventUid: string, attrs: { type?: string; team_uid?: string | null; player_uid?: string | null; player2_uid?: string | null }): Promise<GameEventData> => {
+    const { data } = await client.patch(`/events/${eventUid}`, {
       data: { type: "game_events", attributes: attrs },
     });
     const r = data.data as ResourceObject<Record<string, unknown>>;
@@ -250,20 +268,7 @@ export const gamesApi = {
       player2_uid: r.relationships?.player2?.data?.uid,
     } as unknown as GameEventData;
   },
-  updateEvent: async (gameUid: string, eventId: string, attrs: { type?: string; team_uid?: string | null; player_uid?: string | null; player2_uid?: string | null }): Promise<GameEventData> => {
-    const { data } = await client.patch(`/games/${gameUid}/events/${eventId}`, {
-      data: { type: "game_events", attributes: attrs },
-    });
-    const r = data.data as ResourceObject<Record<string, unknown>>;
-    return {
-      uid: r.uid,
-      ...r.attributes,
-      team_uid: r.relationships?.team?.data?.uid,
-      player_uid: r.relationships?.player?.data?.uid,
-      player2_uid: r.relationships?.player2?.data?.uid,
-    } as unknown as GameEventData;
-  },
-  deleteEvent: async (gameUid: string, eventId: string): Promise<void> => {
-    await client.delete(`/games/${gameUid}/events/${eventId}`);
+  delete: async (eventUid: string): Promise<void> => {
+    await client.delete(`/events/${eventUid}`);
   },
 };

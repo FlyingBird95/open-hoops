@@ -8,6 +8,7 @@ from app.jsonapi import document
 from open_hoops.service.player.models import Player
 from open_hoops.service.team.models import Team
 
+from .router import router
 from .serialize import serialize_player
 
 
@@ -39,6 +40,7 @@ class PlayerCreateRequest(BaseModel):
     data: PlayerCreateData
 
 
+@router.post("")
 def create_player(body: PlayerCreateRequest, db: Session = Depends(get_db)):
     team = get_or_404(db, Team, body.data.relationships.team.data.uid)
     attrs = body.data.attributes

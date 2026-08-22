@@ -1,7 +1,6 @@
 import os
 
 from app.jsonapi import relationship_linkage, resource_object
-from open_hoops.service.event.models import GameEvent
 from open_hoops.service.game.models import Game, GameFile
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 
@@ -48,7 +47,6 @@ def serialize_game_file(gf: GameFile) -> dict:
 def serialize_team_stats(ts: GameTeamStats) -> dict:
     return resource_object(
         type="game_team_stats",
-        uid=ts.uid,
         attributes={
             "score": ts.score,
             "possession_pct": ts.possession_pct,
@@ -70,7 +68,6 @@ def serialize_player_stats(ps: GamePlayerStats) -> dict:
 
     return resource_object(
         type="game_player_stats",
-        uid=ps.uid,
         attributes={
             "jersey_number": ps.jersey_number,
             "distance_covered_m": ps.distance_covered_m,
@@ -79,33 +76,6 @@ def serialize_player_stats(ps: GamePlayerStats) -> dict:
             "passes_made": ps.passes_made,
             "passes_received": ps.passes_received,
             "possession_frames": ps.possession_frames,
-        },
-        relationships=rels,
-    )
-
-
-def serialize_event(ev: GameEvent) -> dict:
-    rels: dict = {"game": relationship_linkage("games", ev.game.uid)}
-    if ev.team:
-        rels["team"] = relationship_linkage("teams", ev.team.uid)
-    if ev.player:
-        rels["player"] = relationship_linkage("players", ev.player.uid)
-    if ev.player2:
-        rels["player2"] = relationship_linkage("players", ev.player2.uid)
-
-    bbox = None
-    if ev.bbox_x1 is not None:
-        bbox = {"x1": ev.bbox_x1, "y1": ev.bbox_y1, "x2": ev.bbox_x2, "y2": ev.bbox_y2}
-
-    return resource_object(
-        type="game_events",
-        uid=ev.uid,
-        attributes={
-            "type": ev.type,
-            "frame": ev.frame,
-            "timestamp_sec": ev.timestamp_sec,
-            "bbox": bbox,
-            "source": ev.source.value if ev.source else "analysis",
         },
         relationships=rels,
     )

@@ -5,9 +5,11 @@ from app.database import get_db
 from app.jsonapi import document
 from open_hoops.service.team.models import Team
 
+from .router import router
 from .serialize import serialize_team
 
 
+@router.get("")
 def list_teams(is_own: bool | None = Query(None), db: Session = Depends(get_db)):
     q = db.query(Team)
     if is_own is not None:

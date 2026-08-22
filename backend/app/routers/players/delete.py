@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db, get_or_404
 from open_hoops.service.player.models import Player
 
+from .router import router
 
+
+@router.delete("/{uid}")
 def delete_player(uid: str, db: Session = Depends(get_db)):
     player = get_or_404(db, Player, uid)
     db.delete(player)
