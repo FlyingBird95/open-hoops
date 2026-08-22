@@ -1,4 +1,4 @@
-from open_hoops.models import AnalyzedEvent
+from open_hoops.service.analysis.models import AnalyzedEvent
 from open_hoops.stats.score import ScoreTracker
 
 

@@ -1,6 +1,6 @@
 import math
 
-from open_hoops.models import AnalyzedEvent
+from open_hoops.service.analysis.models import AnalyzedEvent
 from open_hoops.tracker import TrackedFrame
 
 _MAKE_RADIUS = 0.15  # ball centre within this of hoop centre = make

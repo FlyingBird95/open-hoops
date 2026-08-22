@@ -5,7 +5,7 @@ import numpy as np
 
 from open_hoops.identity.player import finalize_jerseys
 from open_hoops.identity.team import assign_teams_from_profiles
-from open_hoops.models import (
+from open_hoops.service.analysis.models import (
     AnalysisResult,
     AnalyzedPlayerStats,
     AnalyzedTeamStats,

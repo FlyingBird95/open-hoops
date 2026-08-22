@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from open_hoops.analyzer import OpenHoop
 from open_hoops.core.database import get_session_factory, session_scope
-from open_hoops.models import Roster, TeamRoster, Video
+from open_hoops.service.analysis.models import Roster, TeamRoster, Video
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameFile, GameStatus
 from open_hoops.service.player.models import Player

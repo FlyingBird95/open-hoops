@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from sqlalchemy.orm import Session
 
-from open_hoops.models import AnalysisResult, AnalyzedTeamStats, Video
+from open_hoops.service.analysis.models import AnalysisResult, AnalyzedTeamStats, Video
 from open_hoops.service.game.models import Game, GameStatus
 from testhelpers.factories import GameFileFactory
 from worker.tasks import analyze_game

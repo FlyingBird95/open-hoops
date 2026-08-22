@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 
-from open_hoops.models import Roster
+from open_hoops.service.analysis.models import Roster
 
 if TYPE_CHECKING:
     from open_hoops.pass_one import TrackProfile

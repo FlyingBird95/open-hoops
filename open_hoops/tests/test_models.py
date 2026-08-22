@@ -1,6 +1,11 @@
 import json
 
-from open_hoops.models import AnalyzedEvent, AnalysisResult, AnalyzedPlayerStats, Video
+from open_hoops.service.analysis.models import (
+    AnalysisResult,
+    AnalyzedEvent,
+    AnalyzedPlayerStats,
+    Video,
+)
 
 
 def test_video_model():

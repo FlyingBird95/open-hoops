@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 
 from open_hoops.analyzer import OpenHoop
-from open_hoops.models import AnalysisResult, AnalyzedTeamStats, Roster, TeamRoster, Video
+from open_hoops.service.analysis.models import (
+    AnalysisResult,
+    AnalyzedTeamStats,
+    Roster,
+    TeamRoster,
+    Video,
+)
 from open_hoops.pass_one import PassOneResult, TrackProfile
 from open_hoops.tracker import TrackedFrame
 
