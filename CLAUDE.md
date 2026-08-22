@@ -15,12 +15,18 @@ Basketball video analytics platform. YOLO-based detection + stats extraction fro
 ## Project Structure
 
 ```
-open_hoops/       — core library (analysis, detection, Pydantic models)
-open_hoops/db/    — SQLAlchemy models + database base (Team, Player, Game)
-backend/          — FastAPI REST API
-worker/           — Celery worker (background analysis tasks)
-frontend/         — React + TypeScript + Vite dashboard
+open_hoops/          — core library (analysis, detection, Pydantic models)
+open_hoops/core/     — database engine, Base, session factory
+open_hoops/service/  — SQLAlchemy models per domain (team, player, game, event, stats)
+backend/             — FastAPI REST API
+worker/              — Celery worker (background analysis tasks)
+frontend/            — React + TypeScript + Vite dashboard
 ```
+
+## Python Style
+
+- **Never use `from __future__ import annotations`.** Use string annotations (`"ClassName"`) for forward references instead.
+- **Every `__init__.py` must be empty.** No re-exports. Import directly from the module where things are defined (e.g. `from open_hoops.service.team.models import Team`, not `from open_hoops.service import Team`).
 
 ## Key Conventions
 
@@ -52,7 +58,7 @@ frontend/         — React + TypeScript + Vite dashboard
 ### Backend
 
 - FastAPI with SQLAlchemy 2.0 (sync sessions).
-- DB models live in `open_hoops/db/` (shared with worker).
+- DB models live in `open_hoops/service/` (shared with worker).
 - Backend dispatches Celery tasks by name via `send_task()` — no direct import of worker.
 - PostgreSQL database. Alembic for migrations.
 
@@ -60,7 +66,7 @@ frontend/         — React + TypeScript + Vite dashboard
 
 - Celery + Redis. Separate top-level `worker/` package.
 - Run with: `celery -A worker.celery_app:celery worker --loglevel=info -Q analysis`
-- Imports `open_hoops.db` for models and `open_hoops` for analysis.
+- Imports `open_hoops.service` models and `open_hoops` for analysis.
 
 ### Frontend
 
