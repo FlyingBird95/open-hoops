@@ -1,16 +1,18 @@
 import enum
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     Date,
+    DateTime,
     Enum,
     Float,
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -102,3 +104,23 @@ class GameFile(Base):
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"))
     game: Mapped["Game"] = relationship(back_populates="files")
     """The game this file belongs to."""
+
+
+class LogLevel(str, enum.Enum):
+    info = "info"
+    warning = "warning"
+    error = "error"
+
+
+class GameLog(Base):
+    __tablename__ = "game_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"))
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    level: Mapped[LogLevel] = mapped_column(Enum(LogLevel), default=LogLevel.info)
+    message: Mapped[str] = mapped_column(Text)
+
+    game: Mapped["Game"] = relationship()
