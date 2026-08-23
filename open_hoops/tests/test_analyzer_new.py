@@ -47,16 +47,18 @@ def test_extract_stats_returns_analysis_result(
     mock_detector.filter_numbers.return_value = sv.Detections.empty()
     mock_detector.filter_ball.return_value = sv.Detections.empty()
 
-    # Mock tracker
+    # Mock tracker (batch video API)
     mock_tracker = MagicMock()
     mock_tracker_cls.return_value = mock_tracker
-    mock_tracker.track_frame.return_value = sv.Detections(
+    mock_tracker.init_video.return_value = {}
+    tracked_det = sv.Detections(
         xyxy=np.array([[100, 200, 150, 300]]),
         confidence=np.array([0.9]),
         class_id=np.array([3]),
         tracker_id=np.array([1]),
         mask=np.zeros((1, 720, 1280), dtype=bool),
     )
+    mock_tracker.propagate.return_value = {0: tracked_det, 1: tracked_det, 2: tracked_det}
 
     # Mock team classifier
     mock_team = MagicMock()

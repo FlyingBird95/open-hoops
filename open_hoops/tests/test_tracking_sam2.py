@@ -2,52 +2,54 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import supervision as sv
+import torch
 
 from open_hoops.tracking.sam2_tracker import SAM2Tracker, TrackedFrame, TrackedPlayer
 
 
-@patch("open_hoops.tracking.sam2_tracker.build_sam2_camera_predictor")
-def test_prompt_first_frame(mock_build):
+@patch("open_hoops.tracking.sam2_tracker.build_sam2_video_predictor")
+def test_add_objects_prompts_predictor(mock_build):
     mock_predictor = MagicMock()
     mock_build.return_value = mock_predictor
 
     tracker = SAM2Tracker()
-    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    state = {"obj_ids": []}
+    mock_predictor.init_state.return_value = state
+
     detections = sv.Detections(
         xyxy=np.array([[100, 200, 150, 300], [400, 200, 450, 300]]),
         confidence=np.array([0.9, 0.85]),
         class_id=np.array([3, 3]),
         tracker_id=np.array([1, 2]),
     )
-    tracker.prompt_first_frame(frame, detections)
+    tracker.add_objects(state, frame_idx=0, detections=detections)
 
-    mock_predictor.load_first_frame.assert_called_once()
-    assert mock_predictor.add_new_prompt.call_count == 2
+    assert mock_predictor.add_new_points_or_box.call_count == 2
 
 
-@patch("open_hoops.tracking.sam2_tracker.build_sam2_camera_predictor")
-def test_track_frame_returns_detections_with_masks(mock_build):
+@patch("open_hoops.tracking.sam2_tracker.build_sam2_video_predictor")
+def test_propagate_returns_detections_per_frame(mock_build):
     mock_predictor = MagicMock()
     mock_build.return_value = mock_predictor
 
-    # Simulate SAM2 output: dict of obj_id -> mask
-    mask1 = np.zeros((720, 1280), dtype=bool)
-    mask1[200:300, 100:150] = True
-    mask2 = np.zeros((720, 1280), dtype=bool)
-    mask2[200:300, 400:450] = True
-    mock_predictor.track.return_value = ({1: mask1, 2: mask2}, {1: 0.95, 2: 0.9})
+    mask1 = torch.zeros((1, 1, 720, 1280))
+    mask1[0, 0, 200:300, 100:150] = 1.0
+    mask2 = torch.zeros((1, 1, 720, 1280))
+    mask2[0, 0, 200:300, 400:450] = 1.0
+
+    masks_frame0 = torch.cat([mask1, mask2], dim=0)
+
+    mock_predictor.propagate_in_video.return_value = iter([(0, [1, 2], masks_frame0)])
 
     tracker = SAM2Tracker()
-    tracker._predictor = mock_predictor
-    tracker._prompted = True
+    state = {}
+    results = tracker.propagate(state)
 
-    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    result = tracker.track_frame(frame)
-
-    assert isinstance(result, sv.Detections)
-    assert len(result) == 2
-    assert result.tracker_id is not None
-    assert result.mask is not None
+    assert 0 in results
+    assert isinstance(results[0], sv.Detections)
+    assert len(results[0]) == 2
+    assert results[0].tracker_id is not None
+    assert results[0].mask is not None
 
 
 def test_tracked_frame_dataclass():

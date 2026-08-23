@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import supervision as sv
 import torch
-from sam2.build_sam import build_sam2_video_predictor as build_sam2_camera_predictor
+from sam2.build_sam import build_sam2_video_predictor
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 SAM2_CHECKPOINT = os.environ.get(
@@ -38,6 +38,15 @@ class TrackedFrame:
 
 
 class SAM2Tracker:
+    """Batch video tracker using SAM2VideoPredictor.
+
+    Usage:
+        tracker = SAM2Tracker()
+        state = tracker.init_video(video_path)
+        tracker.add_objects(state, frame_idx=0, detections=player_dets)
+        results = tracker.propagate(state)  # dict[frame_idx -> sv.Detections]
+    """
+
     def __init__(
         self,
         checkpoint: str = SAM2_CHECKPOINT,
@@ -45,55 +54,42 @@ class SAM2Tracker:
         device: str | None = None,
     ) -> None:
         self._device = device or _get_device()
-        self._predictor = build_sam2_camera_predictor(config, checkpoint, device=self._device)
-        self._prompted = False
+        self._predictor = build_sam2_video_predictor(config, checkpoint, device=self._device)
 
-    def _autocast(self):
-        if self._device == "cuda":
-            return torch.autocast("cuda", dtype=torch.bfloat16)
-        return torch.autocast(self._device, dtype=torch.float32)
+    def init_video(self, video_path: str) -> dict:
+        with torch.inference_mode():
+            state = self._predictor.init_state(video_path=video_path)
+        return state
 
-    def prompt_first_frame(self, frame: np.ndarray, detections: sv.Detections) -> None:
+    def add_objects(self, state: dict, frame_idx: int, detections: sv.Detections) -> None:
         if len(detections) == 0:
             return
         if detections.tracker_id is None:
             detections.tracker_id = np.arange(1, len(detections) + 1)
 
-        with torch.inference_mode(), self._autocast():
-            self._predictor.load_first_frame(frame)
+        with torch.inference_mode():
             for xyxy, obj_id in zip(detections.xyxy, detections.tracker_id):
-                bbox = np.asarray([xyxy], dtype=np.float32)
-                self._predictor.add_new_prompt(
-                    frame_idx=0,
+                self._predictor.add_new_points_or_box(
+                    inference_state=state,
+                    frame_idx=frame_idx,
                     obj_id=int(obj_id),
-                    bbox=bbox,
+                    box=xyxy,
                 )
-        self._prompted = True
 
-    def track_frame(self, frame: np.ndarray) -> sv.Detections:
-        if not self._prompted:
-            return sv.Detections.empty()
+    def propagate(self, state: dict) -> dict[int, sv.Detections]:
+        results: dict[int, sv.Detections] = {}
 
-        with torch.inference_mode(), self._autocast():
-            masks_by_id, _scores_by_id = self._predictor.track(frame)
+        with torch.inference_mode():
+            for frame_idx, obj_ids, masks in self._predictor.propagate_in_video(state):
+                mask_array = (masks > 0.0).cpu().numpy().squeeze(1)
+                if mask_array.ndim == 2:
+                    mask_array = mask_array[np.newaxis, ...]
 
-        if not masks_by_id:
-            return sv.Detections.empty()
+                xyxy = sv.mask_to_xyxy(mask_array)
+                results[frame_idx] = sv.Detections(
+                    xyxy=xyxy,
+                    mask=mask_array,
+                    tracker_id=np.array(list(obj_ids), dtype=int),
+                )
 
-        obj_ids = list(masks_by_id.keys())
-        mask_array = np.stack([masks_by_id[oid] for oid in obj_ids]).astype(bool)
-        xyxy = sv.mask_to_xyxy(mask_array)
-
-        return sv.Detections(
-            xyxy=xyxy,
-            mask=mask_array,
-            tracker_id=np.array(obj_ids, dtype=int),
-        )
-
-    def add_new_object(self, frame: np.ndarray, bbox: np.ndarray, obj_id: int) -> None:
-        with torch.inference_mode(), self._autocast():
-            self._predictor.add_new_prompt(
-                frame_idx=0,
-                obj_id=obj_id,
-                bbox=np.asarray([bbox], dtype=np.float32),
-            )
+        return results

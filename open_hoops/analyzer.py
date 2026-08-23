@@ -47,24 +47,28 @@ class OpenHoop:
         passes = PassDetector()
         score = ScoreTracker()
 
+        video_info = sv.VideoInfo.from_video_path(self._video.path)
+        fps = video_info.fps
         frames = list(sv.get_video_frames_generator(self._video.path))
-        fps = sv.VideoInfo.from_video_path(self._video.path).fps
         total_frames = len(frames)
 
         if total_frames == 0:
             return self._empty_result(fps)
 
-        # Phase 1: Detect first frame, prompt SAM2
+        # Phase 1: Detect first frame, prompt SAM2, propagate tracking
         first_detections = detector.detect(frames[0])
         player_detections = detector.filter_players(first_detections)
         player_detections.tracker_id = np.arange(1, len(player_detections) + 1)
-        tracker.prompt_first_frame(frames[0], player_detections)
+
+        sam2_state = tracker.init_video(self._video.path)
+        tracker.add_objects(sam2_state, frame_idx=0, detections=player_detections)
+        tracking_results = tracker.propagate(sam2_state)
 
         # Phase 2: Compute court homography from first frame
         court_mapper.compute_homography(frames[0])
 
         # Phase 3: Collect team crops at 1 FPS for classifier training
-        team_crops = self._collect_team_crops(frames, detector, tracker, fps)
+        team_crops = self._collect_team_crops(frames, detector, tracking_results, fps)
         if team_crops:
             team_classifier.fit(team_crops)
 
@@ -78,11 +82,8 @@ class OpenHoop:
             # Detection
             detections = detector.detect(frame)
 
-            # Tracking
-            if frame_idx == 0:
-                tracked = player_detections
-            else:
-                tracked = tracker.track_frame(frame)
+            # Tracking — use pre-computed SAM2 results
+            tracked = tracking_results.get(frame_idx, sv.Detections.empty())
 
             # Court mapping
             if tracked.tracker_id is not None and len(tracked) > 0:
@@ -185,19 +186,26 @@ class OpenHoop:
         self,
         frames,
         detector,
-        tracker,
+        tracking_results: dict[int, sv.Detections],
         fps,
     ) -> list[np.ndarray]:
         crops = []
         interval = max(1, int(fps / TEAM_SAMPLE_FPS))
         for i in range(0, min(len(frames), int(fps * 10)), interval):
             frame = frames[i]
-            detections = detector.detect(frame)
-            players = detector.filter_players(detections)
-            for xyxy in players.xyxy:
-                crop = self._central_crop(frame, xyxy)
-                if crop is not None:
-                    crops.append(crop)
+            tracked = tracking_results.get(i)
+            if tracked is not None and tracked.mask is not None:
+                for j in range(len(tracked)):
+                    crop = self._crop_from_mask(frame, tracked.mask[j], tracked.xyxy[j])
+                    if crop is not None:
+                        crops.append(crop)
+            else:
+                detections = detector.detect(frame)
+                players = detector.filter_players(detections)
+                for xyxy in players.xyxy:
+                    crop = self._central_crop(frame, xyxy)
+                    if crop is not None:
+                        crops.append(crop)
         return crops
 
     def _central_crop(self, frame: np.ndarray, xyxy: np.ndarray) -> "np.ndarray | None":
