@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { teamsApi, gamesApi } from "../lib/api";
 import type { Team, Game } from "../lib/api";
@@ -27,6 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Games() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [awayUid, setAwayUid] = useState("");
@@ -90,16 +91,11 @@ export default function Games() {
       setUploadProgress(0);
       return gamesApi.upload(formData, (pct) => setUploadProgress(pct));
     },
-    onSuccess: () => {
+    onSuccess: (game) => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
-      setName("");
-      setDate(new Date().toISOString().slice(0, 10));
-      setAwayUid("");
-      setHomeColor("");
-      setAwayColor("");
-      setFiles([]);
       setUploadProgress(null);
       toast("Game uploaded — analysis started");
+      navigate(`/games/${game.uid}`);
     },
     onError: (err: Error) => {
       setUploadProgress(null);
