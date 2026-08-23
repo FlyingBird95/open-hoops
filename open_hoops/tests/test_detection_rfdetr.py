@@ -1,7 +1,10 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import supervision as sv
+
+os.environ.setdefault("ROBOFLOW_API_KEY", "test_key")
 
 from open_hoops.detection.rfdetr import (
     BALL_CLASS_ID,

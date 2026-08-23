@@ -9,6 +9,14 @@ SAM2_CHECKPOINT = "checkpoints/sam2.1_hiera_large.pt"
 SAM2_CONFIG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 
+def _get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 @dataclass
 class TrackedPlayer:
     track_id: int
@@ -29,9 +37,16 @@ class SAM2Tracker:
         self,
         checkpoint: str = SAM2_CHECKPOINT,
         config: str = SAM2_CONFIG,
+        device: str | None = None,
     ) -> None:
-        self._predictor = build_sam2_camera_predictor(config, checkpoint)
+        self._device = device or _get_device()
+        self._predictor = build_sam2_camera_predictor(config, checkpoint, device=self._device)
         self._prompted = False
+
+    def _autocast(self):
+        if self._device == "cuda":
+            return torch.autocast("cuda", dtype=torch.bfloat16)
+        return torch.autocast(self._device, dtype=torch.float32)
 
     def prompt_first_frame(self, frame: np.ndarray, detections: sv.Detections) -> None:
         if len(detections) == 0:
@@ -39,7 +54,7 @@ class SAM2Tracker:
         if detections.tracker_id is None:
             detections.tracker_id = np.arange(1, len(detections) + 1)
 
-        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.inference_mode(), self._autocast():
             self._predictor.load_first_frame(frame)
             for xyxy, obj_id in zip(detections.xyxy, detections.tracker_id):
                 bbox = np.asarray([xyxy], dtype=np.float32)
@@ -54,7 +69,7 @@ class SAM2Tracker:
         if not self._prompted:
             return sv.Detections.empty()
 
-        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.inference_mode(), self._autocast():
             masks_by_id, _scores_by_id = self._predictor.track(frame)
 
         if not masks_by_id:
@@ -71,7 +86,7 @@ class SAM2Tracker:
         )
 
     def add_new_object(self, frame: np.ndarray, bbox: np.ndarray, obj_id: int) -> None:
-        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.inference_mode(), self._autocast():
             self._predictor.add_new_prompt(
                 frame_idx=0,
                 obj_id=obj_id,

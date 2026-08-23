@@ -1,6 +1,9 @@
+import logging
 import os
 
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from open_hoops.analyzer import OpenHoop
 from open_hoops.core.database import Database
@@ -26,7 +29,8 @@ def analyze_game(game_uid: str) -> None:
 
         try:
             _run_analysis(db, game)
-        except Exception:  # noqa: BLE001
+        except Exception:
+            logger.exception("Analysis failed for game %s", game_uid)
             db.rollback()
             game.status = GameStatus.failed
 

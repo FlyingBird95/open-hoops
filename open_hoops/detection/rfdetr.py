@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import supervision as sv
 from inference import get_model
@@ -23,6 +25,11 @@ class RFDETRDetector:
         confidence: float = DEFAULT_CONFIDENCE,
         iou_threshold: float = DEFAULT_IOU_THRESHOLD,
     ) -> None:
+        if not os.environ.get("ROBOFLOW_API_KEY"):
+            raise RuntimeError(
+                "ROBOFLOW_API_KEY env var not set. "
+                "Get a free key at https://app.roboflow.com → Settings → API Key"
+            )
         self._model = get_model(model_id=model_id)
         self._confidence = confidence
         self._iou_threshold = iou_threshold
