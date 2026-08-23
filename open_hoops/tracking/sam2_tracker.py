@@ -2,6 +2,7 @@ import os
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
@@ -9,11 +10,16 @@ import supervision as sv
 import torch
 from sam2.build_sam import build_sam2_video_predictor
 
+if TYPE_CHECKING:
+    from open_hoops.core.logger.protocol import LoggerProtocol
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 SAM2_CHECKPOINT = os.environ.get(
     "SAM2_CHECKPOINT", str(_REPO_ROOT / "checkpoints" / "sam2.1_hiera_large.pt")
 )
-SAM2_CONFIG = "configs/sam2.1/sam2.1_hiera_l.yaml"
+SAM2_CONFIG = os.environ.get("SAM2_CONFIG", "configs/sam2.1/sam2.1_hiera_l.yaml")
+
+_MPS_CACHE_CLEAR_INTERVAL = 50
 
 
 def _get_device() -> str:
@@ -56,6 +62,8 @@ class SAM2Tracker:
         device: str | None = None,
     ) -> None:
         self._device = device or _get_device()
+        if self._device == "mps":
+            os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")
         self._predictor = build_sam2_video_predictor(config, checkpoint, device=self._device)
 
     def init_video(self, video_path: str) -> dict:
@@ -93,8 +101,12 @@ class SAM2Tracker:
                     box=xyxy,
                 )
 
-    def propagate(self, state: dict) -> dict[int, sv.Detections]:
+    def propagate(
+        self, state: dict, logger: "LoggerProtocol | None" = None
+    ) -> dict[int, sv.Detections]:
         results: dict[int, sv.Detections] = {}
+        num_frames = state.get("num_frames", 0)
+        log_interval = max(1, num_frames // 10)
 
         with torch.inference_mode():
             for frame_idx, obj_ids, masks in self._predictor.propagate_in_video(state):
@@ -108,5 +120,14 @@ class SAM2Tracker:
                     mask=mask_array,
                     tracker_id=np.array(list(obj_ids), dtype=int),
                 )
+
+                if self._device == "mps" and frame_idx % _MPS_CACHE_CLEAR_INTERVAL == 0:
+                    torch.mps.empty_cache()
+
+                if logger and num_frames and frame_idx % log_interval == 0:
+                    pct = int((frame_idx + 1) / num_frames * 100)
+                    logger.info(
+                        "SAM2 propagation: %d%% (%d/%d frames)", pct, frame_idx + 1, num_frames
+                    )
 
         return results

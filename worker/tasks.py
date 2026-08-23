@@ -1,4 +1,3 @@
-import logging
 import os
 import traceback
 
@@ -6,24 +5,19 @@ from sqlalchemy.orm import Session
 
 from open_hoops.analyzer import OpenHoop
 from open_hoops.core.database import Database
+from open_hoops.core.logger.game import GameLogger
+from open_hoops.core.logger.protocol import LoggerProtocol
 from open_hoops.service.analysis.models import Roster, TeamRoster, Video
 from open_hoops.service.event.models import EventSource, GameEvent
-from open_hoops.service.game.models import Game, GameFile, GameLog, GameStatus, LogLevel
+from open_hoops.service.game.models import Game, GameFile, GameStatus
 from open_hoops.service.player.models import Player
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 from worker.celery_app import celery
-
-logger = logging.getLogger(__name__)
 
 database_url = os.environ.get(
     "OPEN_HOOPS_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/open_hoops"
 )
 database = Database(database_url)
-
-
-def _log(game_id: int, message: str, level: LogLevel = LogLevel.info) -> None:
-    with database.use_scoped_session() as session:
-        session.add(GameLog(game_id=game_id, level=level, message=message))
 
 
 @celery.task(name="worker.tasks.analyze_game")
@@ -33,19 +27,20 @@ def analyze_game(game_uid: str) -> None:
         if not game:
             return
 
+        logger = GameLogger(database=database, game_id=game.id)
+
         try:
-            _run_analysis(db, game)
-        except Exception:
-            logger.exception("Analysis failed for game %s", game_uid)
-            _log(game.id, f"Analysis failed:\n{traceback.format_exc()}", LogLevel.error)
+            _run_analysis(db, game, logger)
+        except Exception:  # noqa: BLE001
+            logger.error(f"Analysis failed:\n{traceback.format_exc()}")
             db.rollback()
             game.status = GameStatus.failed
 
 
-def _run_analysis(db: Session, game: Game) -> None:
+def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
     game.status = GameStatus.processing
     db.flush()
-    _log(game.id, "Analysis started")
+    logger.info("Analysis started")
 
     own_players = db.query(Player).filter(Player.team_id == game.own_team_id).all()
     opponent_players = db.query(Player).filter(Player.team_id == game.opponent_team_id).all()
@@ -66,7 +61,7 @@ def _run_analysis(db: Session, game: Game) -> None:
     )
 
     file_paths = [gf.file_path for gf in game_files]
-    _log(game.id, f"Processing {len(file_paths)} video file(s)")
+    logger.info(f"Processing {len(file_paths)} video file(s)")
 
     total_duration = 0.0
     fps = 0.0
@@ -76,12 +71,10 @@ def _run_analysis(db: Session, game: Game) -> None:
     frame_offset = 0
 
     for i, file_path in enumerate(file_paths, 1):
-        _log(game.id, f"Analyzing file {i}/{len(file_paths)}: {os.path.basename(file_path)}")
+        logger.info(f"Analyzing file {i}/{len(file_paths)}: {os.path.basename(file_path)}")
         oh = OpenHoop(Video(path=file_path), roster=roster)
         stats = oh.extract_stats()
-        _log(
-            game.id, f"File {i} complete: {stats.duration_seconds:.1f}s, {len(stats.events)} events"
-        )
+        logger.info(f"File {i} complete: {stats.duration_seconds:.1f}s, {len(stats.events)} events")
 
         total_duration += stats.duration_seconds
         fps = stats.fps
@@ -194,4 +187,4 @@ def _run_analysis(db: Session, game: Game) -> None:
         )
 
     game.status = GameStatus.done
-    _log(game.id, f"Analysis complete: {total_duration:.1f}s total, {len(all_events)} events")
+    logger.info(f"Analysis complete: {total_duration:.1f}s total, {len(all_events)} events")

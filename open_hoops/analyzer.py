@@ -1,11 +1,10 @@
-import logging
 from math import hypot
 
 import numpy as np
 import supervision as sv
 
-logger = logging.getLogger(__name__)
-
+from open_hoops.core.logger.default import DefaultLogger
+from open_hoops.core.logger.protocol import LoggerProtocol
 from open_hoops.court.keypoint_homography import CourtMapper
 from open_hoops.detection.rfdetr import RFDETRDetector
 from open_hoops.identity.number_reader import NumberReader, NumberValidator
@@ -34,9 +33,11 @@ class OpenHoop:
         self,
         video: "Video",
         roster: "Roster | None" = None,
+        logger: "LoggerProtocol | None" = None,
     ) -> None:
         self._video = video
         self._roster = roster
+        self._logger: LoggerProtocol = logger or DefaultLogger(__name__)
 
     def extract_stats(self) -> "AnalysisResult":
         detector = RFDETRDetector()
@@ -58,32 +59,34 @@ class OpenHoop:
         if total_frames == 0:
             return self._empty_result(fps)
 
-        logger.info("Loaded %d frames at %.1f FPS", total_frames, fps)
+        self._logger.info("Loaded %d frames at %.1f FPS", total_frames, fps)
 
         # Phase 1: Detect first frame, prompt SAM2, propagate tracking
-        logger.info("Phase 1: Detection + SAM2 tracking")
+        self._logger.info("Phase 1: Detection + SAM2 tracking")
         first_detections = detector.detect(frames[0])
         player_detections = detector.filter_players(first_detections)
         player_detections.tracker_id = np.arange(1, len(player_detections) + 1)
-        logger.info("Detected %d players on first frame", len(player_detections))
+        self._logger.info("Detected %d players on first frame", len(player_detections))
 
         sam2_state = tracker.init_video(self._video.path)
         tracker.add_objects(sam2_state, frame_idx=0, detections=player_detections)
-        logger.info("SAM2 propagating masks across %d frames...", total_frames)
-        tracking_results = tracker.propagate(sam2_state)
-        logger.info("SAM2 tracking complete")
+        self._logger.info("SAM2 propagating masks across %d frames...", total_frames)
+        tracking_results = tracker.propagate(sam2_state, logger=self._logger)
+        self._logger.info("SAM2 tracking complete")
 
         # Phase 2: Compute court homography from first frame
-        logger.info("Phase 2: Court homography")
+        self._logger.info("Phase 2: Court homography")
         homography_ok = court_mapper.compute_homography(frames[0])
-        logger.info("Court homography: %s", "OK" if homography_ok else "failed (using identity)")
+        self._logger.info(
+            "Court homography: %s", "OK" if homography_ok else "failed (using identity)"
+        )
 
         # Phase 3: Collect team crops at 1 FPS for classifier training
-        logger.info("Phase 3: Team classification")
+        self._logger.info("Phase 3: Team classification")
         team_crops = self._collect_team_crops(frames, detector, tracking_results, fps)
         if team_crops:
             team_classifier.fit(team_crops)
-            logger.info("Team classifier trained on %d crops", len(team_crops))
+            self._logger.info("Team classifier trained on %d crops", len(team_crops))
 
         # Phase 4: Process all frames
         team_assignments: dict[int, str] = {}
