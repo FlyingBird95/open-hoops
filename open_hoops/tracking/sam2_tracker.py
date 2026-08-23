@@ -1,11 +1,16 @@
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import supervision as sv
 import torch
 from sam2.build_sam import build_sam2_video_predictor as build_sam2_camera_predictor
 
-SAM2_CHECKPOINT = "checkpoints/sam2.1_hiera_large.pt"
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+SAM2_CHECKPOINT = os.environ.get(
+    "SAM2_CHECKPOINT", str(_REPO_ROOT / "checkpoints" / "sam2.1_hiera_large.pt")
+)
 SAM2_CONFIG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 
