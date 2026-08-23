@@ -19,7 +19,10 @@ class TeamClassifierWrapper:
         self._classifier.fit(crops)
 
     def predict(self, crop: np.ndarray) -> int:
-        return self._classifier.predict(crop)
+        result = self._classifier.predict(crop)
+        if isinstance(result, np.ndarray):
+            return int(result.flat[0])
+        return int(result)
 
     def predict_batch(self, crops: list[np.ndarray]) -> list[int]:
         return [self._classifier.predict(crop) for crop in crops]

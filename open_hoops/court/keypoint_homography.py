@@ -30,8 +30,12 @@ class CourtMapper:
         mask shape: (N,) — boolean mask for keypoints above anchor_confidence
         """
         result = self._model.infer(frame, confidence=self._confidence)[0]
-        xy = result.keypoints.xy[0]
-        conf = result.keypoints.confidence[0]
+        if not result.predictions:
+            empty = np.empty((0, 2))
+            return empty, np.empty(0), np.zeros(0, dtype=bool)
+        keypoints = result.predictions[0].keypoints
+        xy = np.array([[kp.x, kp.y] for kp in keypoints])
+        conf = np.array([kp.confidence for kp in keypoints])
         mask = conf >= self._anchor_confidence
         return xy, conf, mask
 

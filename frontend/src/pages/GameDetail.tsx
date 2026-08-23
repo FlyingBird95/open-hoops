@@ -15,6 +15,74 @@ import { ScoreCard } from "@/components/viz/score-card";
 import { StatBar } from "@/components/viz/stat-bar";
 import { DonutChart } from "@/components/viz/donut-chart";
 
+function GameLogs({ gameUid, isLive, collapsible = false }: { gameUid: string; isLive: boolean; collapsible?: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [logs, setLogs] = useState<GameLogEntry[]>([]);
+  const afterRef = useRef<string | undefined>(undefined);
+  const [expanded, setExpanded] = useState(!collapsible);
+
+  const { data: newLogs } = useQuery({
+    queryKey: ["game-logs", gameUid, afterRef.current],
+    queryFn: () => gamesApi.logs(gameUid, afterRef.current),
+    refetchInterval: isLive ? 2000 : false,
+  });
+
+  useEffect(() => {
+    if (newLogs && newLogs.length > 0) {
+      setLogs((prev) => [...prev, ...newLogs]);
+      afterRef.current = newLogs[newLogs.length - 1].timestamp;
+    }
+  }, [newLogs]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  if (logs.length === 0) {
+    return isLive ? (
+      <p className="text-sm text-muted-foreground">Waiting for logs...</p>
+    ) : null;
+  }
+
+  const levelColor = (level: string) => {
+    if (level === "error") return "text-red-500";
+    if (level === "warning") return "text-yellow-500";
+    return "text-muted-foreground";
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2 cursor-pointer" onClick={() => collapsible && setExpanded(!expanded)}>
+        <CardTitle className="text-sm flex items-center gap-2">
+          {collapsible && <span className="text-muted-foreground">{expanded ? "▾" : "▸"}</span>}
+          Analysis Logs ({logs.length})
+        </CardTitle>
+      </CardHeader>
+      {expanded && (
+        <CardContent>
+          <div ref={scrollRef} className="max-h-80 overflow-y-auto font-mono text-xs space-y-0.5">
+            {logs.map((log) => (
+              <div key={log.uid} className="flex gap-2">
+                <span className="text-muted-foreground shrink-0">
+                  {new Date(log.timestamp).toLocaleTimeString()}
+                </span>
+                <span className={`shrink-0 w-12 ${levelColor(log.level)}`}>
+                  {log.level}
+                </span>
+                <span className={log.level === "error" ? "text-red-500" : ""}>
+                  {log.message}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export default function GameDetail() {
   const { uid } = useParams<{ uid: string }>();
 
@@ -158,69 +226,8 @@ export default function GameDetail() {
       })()}
       {stats && <PlayerStatsTable stats={stats} game={game} teamNameByUid={teamNameByUid} />}
       {!editMode && events && <EventTimeline events={events} game={game} teamNameByUid={teamNameByUid} playerNameByUid={stats ? Object.fromEntries(stats.player_stats.filter(p => p.player_uid).map(p => [p.player_uid!, `#${p.jersey_number}`])) : {}} onEventClick={(ts) => setSeekTarget(ts)} />}
+      <GameLogs gameUid={uid!} isLive={false} collapsible />
     </div>
-  );
-}
-
-function GameLogs({ gameUid, isLive }: { gameUid: string; isLive: boolean }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [logs, setLogs] = useState<GameLogEntry[]>([]);
-  const afterRef = useRef<string | undefined>(undefined);
-
-  const { data: newLogs } = useQuery({
-    queryKey: ["game-logs", gameUid, afterRef.current],
-    queryFn: () => gamesApi.logs(gameUid, afterRef.current),
-    refetchInterval: isLive ? 2000 : false,
-  });
-
-  useEffect(() => {
-    if (newLogs && newLogs.length > 0) {
-      setLogs((prev) => [...prev, ...newLogs]);
-      afterRef.current = newLogs[newLogs.length - 1].timestamp;
-    }
-  }, [newLogs]);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [logs]);
-
-  if (logs.length === 0) {
-    return isLive ? (
-      <p className="text-sm text-muted-foreground">Waiting for logs...</p>
-    ) : null;
-  }
-
-  const levelColor = (level: string) => {
-    if (level === "error") return "text-red-500";
-    if (level === "warning") return "text-yellow-500";
-    return "text-muted-foreground";
-  };
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Analysis Logs</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div ref={scrollRef} className="max-h-80 overflow-y-auto font-mono text-xs space-y-0.5">
-          {logs.map((log) => (
-            <div key={log.uid} className="flex gap-2">
-              <span className="text-muted-foreground shrink-0">
-                {new Date(log.timestamp).toLocaleTimeString()}
-              </span>
-              <span className={`shrink-0 w-12 ${levelColor(log.level)}`}>
-                {log.level}
-              </span>
-              <span className={log.level === "error" ? "text-red-500" : ""}>
-                {log.message}
-              </span>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

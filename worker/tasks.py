@@ -1,7 +1,7 @@
 import os
 import traceback
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select, update
 
 from open_hoops.analyzer import OpenHoop
 from open_hoops.core.database import Database
@@ -9,8 +9,7 @@ from open_hoops.core.logger.game import GameLogger
 from open_hoops.core.logger.protocol import LoggerProtocol
 from open_hoops.service.analysis.models import Roster, TeamRoster, Video
 from open_hoops.service.event.models import EventSource, GameEvent
-from open_hoops.service.game.models import Game, GameFile, GameStatus
-from open_hoops.service.player.models import Player
+from open_hoops.service.game.models import Game, GameStatus
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 from worker.celery_app import celery
 
@@ -22,28 +21,29 @@ database = Database(database_url)
 
 @celery.task(name="worker.tasks.analyze_game")
 def analyze_game(game_uid: str) -> None:
-    with database.use_scoped_session() as db:
-        game = db.query(Game).filter(Game.uid == game_uid).first()
-        if not game:
-            return
+    with database.use_scoped_session() as session:
+        game = session.scalars(select(Game).where(Game.uid == game_uid)).one()
 
         logger = GameLogger(database=database, game_id=game.id)
 
         try:
-            _run_analysis(db, game, logger)
+            _run_analysis(game, logger)
         except Exception:  # noqa: BLE001
             logger.error(f"Analysis failed:\n{traceback.format_exc()}")
-            db.rollback()
-            game.status = GameStatus.failed
+            with database.use_scoped_session() as scoped_session:
+                scoped_session.execute(
+                    update(Game).where(Game.id == game.id).values(status=GameStatus.failed)
+                )
 
 
-def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
-    game.status = GameStatus.processing
-    db.commit()
+def _run_analysis(game: Game, logger: LoggerProtocol) -> None:
+    with database.use_scoped_session() as session:
+        session.execute(update(Game).where(Game.id == game.id).values(status=GameStatus.processing))
+
     logger.info("Analysis started")
 
-    own_players = db.query(Player).filter(Player.team_id == game.own_team_id).all()
-    opponent_players = db.query(Player).filter(Player.team_id == game.opponent_team_id).all()
+    own_players = [player for player in game.own_team.players]
+    opponent_players = [player for player in game.opponent_team.players]
 
     roster = Roster(
         home=TeamRoster(
@@ -56,11 +56,7 @@ def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
         ),
     )
 
-    game_files = (
-        db.query(GameFile).filter(GameFile.game_id == game.id).order_by(GameFile.position).all()
-    )
-
-    file_paths = [gf.file_path for gf in game_files]
+    file_paths = [game_file.file_path for game_file in game.files]
     logger.info(f"Processing {len(file_paths)} video file(s)")
 
     total_duration = 0.0
@@ -201,6 +197,7 @@ def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
                 )
             )
 
-    with database.use_scoped_session():
-        game.status = GameStatus.done
+    with database.use_scoped_session() as session:
+        session.execute(update(Game).where(Game.id == game.id).values(status=GameStatus.done))
+
     logger.info(f"Analysis complete: {total_duration:.1f}s total, {len(all_events)} events")

@@ -27,7 +27,14 @@ class NumberReader:
                 continue
 
             response = self._model.infer(crop, prompt=NUMBER_PROMPT)
-            results[idx] = response.output if response.output else None
+            if isinstance(response, list):
+                response = response[0]
+            text = (
+                response.response
+                if hasattr(response, "response")
+                else getattr(response, "output", None)
+            )
+            results[idx] = text if text else None
 
         return results
 
