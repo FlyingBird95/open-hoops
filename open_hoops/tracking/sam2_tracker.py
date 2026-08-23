@@ -1,7 +1,9 @@
 import os
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import cv2
 import numpy as np
 import supervision as sv
 import torch
@@ -57,9 +59,24 @@ class SAM2Tracker:
         self._predictor = build_sam2_video_predictor(config, checkpoint, device=self._device)
 
     def init_video(self, video_path: str) -> dict:
+        frame_dir = self._extract_frames(video_path)
         with torch.inference_mode():
-            state = self._predictor.init_state(video_path=video_path)
+            state = self._predictor.init_state(video_path=frame_dir)
+        state["_frame_dir"] = frame_dir
         return state
+
+    def _extract_frames(self, video_path: str) -> str:
+        frame_dir = tempfile.mkdtemp(prefix="sam2_frames_")
+        cap = cv2.VideoCapture(video_path)
+        idx = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            cv2.imwrite(os.path.join(frame_dir, f"{idx:06d}.jpg"), frame)
+            idx += 1
+        cap.release()
+        return frame_dir
 
     def add_objects(self, state: dict, frame_idx: int, detections: sv.Detections) -> None:
         if len(detections) == 0:
