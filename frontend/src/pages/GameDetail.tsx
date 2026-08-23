@@ -3,14 +3,14 @@ import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { gamesApi, eventsApi, teamsApi, playersApi } from "../lib/api";
-import type { Game, GameStatsResponse, GameEventData, GameFileData } from "../lib/api";
+import type { Game, GameStatsResponse, GameEventData, GameFileData, GameLogEntry } from "../lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Archive, ArchiveRestore, Eye, Pencil, PencilOff, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Eye, Loader2, Pencil, PencilOff, Trash2 } from "lucide-react";
 import { ScoreCard } from "@/components/viz/score-card";
 import { StatBar } from "@/components/viz/stat-bar";
 import { DonutChart } from "@/components/viz/donut-chart";
@@ -81,9 +81,11 @@ export default function GameDetail() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">{game.name}</h1>
-        <Badge>{game.status}</Badge>
-        {game.status === "processing" && <p className="text-muted-foreground">Analysis in progress...</p>}
-        {game.status === "failed" && <p className="text-red-500">Analysis failed.</p>}
+        <Badge variant={game.status === "failed" ? "destructive" : "secondary"}>
+          {game.status === "processing" && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+          {game.status}
+        </Badge>
+        <GameLogs gameUid={uid!} isLive={game.status === "processing"} />
       </div>
     );
   }
@@ -157,6 +159,68 @@ export default function GameDetail() {
       {stats && <PlayerStatsTable stats={stats} game={game} teamNameByUid={teamNameByUid} />}
       {!editMode && events && <EventTimeline events={events} game={game} teamNameByUid={teamNameByUid} playerNameByUid={stats ? Object.fromEntries(stats.player_stats.filter(p => p.player_uid).map(p => [p.player_uid!, `#${p.jersey_number}`])) : {}} onEventClick={(ts) => setSeekTarget(ts)} />}
     </div>
+  );
+}
+
+function GameLogs({ gameUid, isLive }: { gameUid: string; isLive: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [logs, setLogs] = useState<GameLogEntry[]>([]);
+  const afterRef = useRef<string | undefined>(undefined);
+
+  const { data: newLogs } = useQuery({
+    queryKey: ["game-logs", gameUid, afterRef.current],
+    queryFn: () => gamesApi.logs(gameUid, afterRef.current),
+    refetchInterval: isLive ? 2000 : false,
+  });
+
+  useEffect(() => {
+    if (newLogs && newLogs.length > 0) {
+      setLogs((prev) => [...prev, ...newLogs]);
+      afterRef.current = newLogs[newLogs.length - 1].timestamp;
+    }
+  }, [newLogs]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  if (logs.length === 0) {
+    return isLive ? (
+      <p className="text-sm text-muted-foreground">Waiting for logs...</p>
+    ) : null;
+  }
+
+  const levelColor = (level: string) => {
+    if (level === "error") return "text-red-500";
+    if (level === "warning") return "text-yellow-500";
+    return "text-muted-foreground";
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Analysis Logs</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div ref={scrollRef} className="max-h-80 overflow-y-auto font-mono text-xs space-y-0.5">
+          {logs.map((log) => (
+            <div key={log.uid} className="flex gap-2">
+              <span className="text-muted-foreground shrink-0">
+                {new Date(log.timestamp).toLocaleTimeString()}
+              </span>
+              <span className={`shrink-0 w-12 ${levelColor(log.level)}`}>
+                {log.level}
+              </span>
+              <span className={log.level === "error" ? "text-red-500" : ""}>
+                {log.message}
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

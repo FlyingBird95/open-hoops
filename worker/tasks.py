@@ -39,7 +39,7 @@ def analyze_game(game_uid: str) -> None:
 
 def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
     game.status = GameStatus.processing
-    db.flush()
+    db.commit()
     logger.info("Analysis started")
 
     own_players = db.query(Player).filter(Player.team_id == game.own_team_id).all()

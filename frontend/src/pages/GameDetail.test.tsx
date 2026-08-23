@@ -11,6 +11,7 @@ vi.mock("../lib/api", () => ({
     update: vi.fn(),
     stats: vi.fn(),
     files: vi.fn(),
+    logs: vi.fn(),
   },
   eventsApi: {
     list: vi.fn(),
@@ -164,6 +165,7 @@ function setupDefaultMocks() {
     return [];
   });
   vi.mocked(gamesApi.files).mockResolvedValue([]);
+  vi.mocked(gamesApi.logs).mockResolvedValue([]);
 }
 
 beforeEach(() => {
@@ -197,7 +199,7 @@ describe("GameDetail", () => {
       expect(screen.getByText("Playoff Game")).toBeInTheDocument();
     });
     expect(screen.getByText("processing")).toBeInTheDocument();
-    expect(screen.getByText("Analysis in progress...")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for logs...")).toBeInTheDocument();
   });
 
   it("shows pending status badge for pending game", async () => {

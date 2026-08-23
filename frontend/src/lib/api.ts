@@ -130,6 +130,13 @@ export interface GameFileData {
   url: string;
 }
 
+export interface GameLogEntry {
+  uid: string;
+  timestamp: string;
+  level: "info" | "warning" | "error";
+  message: string;
+}
+
 export interface GameStatsResponse {
   team_stats: GameTeamStatsData[];
   player_stats: GamePlayerStatsData[];
@@ -225,6 +232,12 @@ export const gamesApi = {
   files: async (uid: string): Promise<GameFileData[]> => {
     const { data } = await client.get(`/games/${uid}/files`);
     return extractMany(data) as unknown as GameFileData[];
+  },
+  logs: async (uid: string, after?: string): Promise<GameLogEntry[]> => {
+    const params: Record<string, string> = {};
+    if (after) params.after = after;
+    const { data } = await client.get(`/games/${uid}/logs`, { params });
+    return extractMany(data) as unknown as GameLogEntry[];
   },
 };
 
