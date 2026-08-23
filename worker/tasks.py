@@ -72,7 +72,7 @@ def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
 
     for i, file_path in enumerate(file_paths, 1):
         logger.info(f"Analyzing file {i}/{len(file_paths)}: {os.path.basename(file_path)}")
-        oh = OpenHoop(Video(path=file_path), roster=roster)
+        oh = OpenHoop(Video(path=file_path), roster=roster, logger=logger)
         stats = oh.extract_stats()
         logger.info(f"File {i} complete: {stats.duration_seconds:.1f}s, {len(stats.events)} events")
 
@@ -123,6 +123,10 @@ def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
 
     game.duration_seconds = total_duration
     game.fps = fps
+    logger.info(
+        f"All files processed. Saving results: {len(all_team_stats)} teams,"
+        f" {len(all_player_stats)} players, {len(all_events)} events"
+    )
 
     player_map = {}
     for p in own_players + opponent_players:
@@ -131,32 +135,41 @@ def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
     for key, ts in all_team_stats.items():
         team_id = game.own_team_id if key == "team_a" else game.opponent_team_id
         avg_poss = ts["possession_pct"] / ts["count"] if ts["count"] else 0
-        db.add(
-            GameTeamStats(
-                game_id=game.id,
-                team_id=team_id,
-                score=ts["score"],
-                possession_pct=avg_poss,
+        with database.use_scoped_session() as session:
+            session.add(
+                GameTeamStats(
+                    game_id=game.id,
+                    team_id=team_id,
+                    score=ts["score"],
+                    possession_pct=avg_poss,
+                )
             )
-        )
 
+    unmatched_jerseys = []
     for (team_key, jersey), ps in all_player_stats.items():
         team_id = game.own_team_id if team_key == "team_a" else game.opponent_team_id
         player = player_map.get((team_id, jersey))
-        db.add(
-            GamePlayerStats(
-                game_id=game.id,
-                team_id=team_id,
-                player_id=player.id if player else None,
-                jersey_number=jersey,
-                distance_covered_m=ps["distance_covered_m"],
-                shot_attempts=ps["shot_attempts"],
-                shot_makes=ps["shot_makes"],
-                passes_made=ps["passes_made"],
-                passes_received=ps["passes_received"],
-                possession_frames=ps["possession_frames"],
+        if not player:
+            unmatched_jerseys.append(jersey)
+        with database.use_scoped_session() as session:
+            session.add(
+                GamePlayerStats(
+                    game_id=game.id,
+                    team_id=team_id,
+                    player_id=player.id if player else None,
+                    jersey_number=jersey,
+                    distance_covered_m=ps["distance_covered_m"],
+                    shot_attempts=ps["shot_attempts"],
+                    shot_makes=ps["shot_makes"],
+                    passes_made=ps["passes_made"],
+                    passes_received=ps["passes_received"],
+                    possession_frames=ps["possession_frames"],
+                )
             )
-        )
+
+    if unmatched_jerseys:
+        logger.warning(f"Unmatched jersey numbers (not in roster): {unmatched_jerseys}")
+    logger.info(f"Saving {len(all_events)} game events")
 
     for ev in all_events:
         team_id = None
@@ -170,21 +183,24 @@ def _run_analysis(db: Session, game: Game, logger: LoggerProtocol) -> None:
             player = player_map.get((team_id, ev["player_id"]))
 
         bbox = ev["bbox"]
-        db.add(
-            GameEvent(
-                game_id=game.id,
-                type=ev["type"],
-                frame=ev["frame"],
-                timestamp_sec=ev["timestamp_sec"],
-                player_id=player.id if player else None,
-                team_id=team_id,
-                source=EventSource.analysis,
-                bbox_x1=bbox.x1 if bbox else None,
-                bbox_y1=bbox.y1 if bbox else None,
-                bbox_x2=bbox.x2 if bbox else None,
-                bbox_y2=bbox.y2 if bbox else None,
-            )
-        )
 
-    game.status = GameStatus.done
+        with database.use_scoped_session() as session:
+            session.add(
+                GameEvent(
+                    game_id=game.id,
+                    type=ev["type"],
+                    frame=ev["frame"],
+                    timestamp_sec=ev["timestamp_sec"],
+                    player_id=player.id if player else None,
+                    team_id=team_id,
+                    source=EventSource.analysis,
+                    bbox_x1=bbox.x1 if bbox else None,
+                    bbox_y1=bbox.y1 if bbox else None,
+                    bbox_x2=bbox.x2 if bbox else None,
+                    bbox_y2=bbox.y2 if bbox else None,
+                )
+            )
+
+    with database.use_scoped_session():
+        game.status = GameStatus.done
     logger.info(f"Analysis complete: {total_duration:.1f}s total, {len(all_events)} events")

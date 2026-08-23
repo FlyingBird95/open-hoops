@@ -87,14 +87,27 @@ class OpenHoop:
         if team_crops:
             team_classifier.fit(team_crops)
             self._logger.info("Team classifier trained on %d crops", len(team_crops))
+        else:
+            self._logger.warning("No team crops collected — classifier not trained")
 
         # Phase 4: Process all frames
+        self._logger.info("Phase 4: Frame-by-frame analysis (%d frames)", total_frames)
         team_assignments: dict[int, str] = {}
         jersey_assignments: dict[int, int | None] = {}
         all_events: list[AnalyzedEvent] = []
         tracked_frames: list[TrackedFrame] = []
+        log_interval = max(1, total_frames // 10)
 
         for frame_idx, frame in enumerate(frames):
+            if frame_idx > 0 and frame_idx % log_interval == 0:
+                pct = int(frame_idx / total_frames * 100)
+                self._logger.info(
+                    "Frame processing: %d%% (%d/%d) — %d events so far",
+                    pct,
+                    frame_idx,
+                    total_frames,
+                    len(all_events),
+                )
             # Detection
             detections = detector.detect(frame)
 
@@ -143,9 +156,17 @@ class OpenHoop:
                 number_dets = detector.filter_numbers(detections)
                 if len(number_dets) > 0:
                     readings = number_reader.read(frame, number_dets)
+                    new_before = len(jersey_assignments)
                     self._match_numbers_to_players(
                         readings, number_dets, tracked, number_validator, jersey_assignments
                     )
+                    new_after = len(jersey_assignments)
+                    if new_after > new_before:
+                        self._logger.info(
+                            "Jersey numbers identified: %d total (%d new this frame)",
+                            new_after,
+                            new_after - new_before,
+                        )
 
             # Event detection
             frame_events = event_detector.update(detections, team_assignments, frame_idx, fps)
@@ -186,6 +207,18 @@ class OpenHoop:
             score.update(frame_events)
 
             all_events.extend(frame_events + pass_events)
+
+        self._logger.info(
+            "Frame processing complete. %d events, %d players tracked, %d jerseys identified",
+            len(all_events),
+            len(team_assignments),
+            len(jersey_assignments),
+        )
+        self._logger.info(
+            "Score: team_a=%d, team_b=%d",
+            score.scores.get("team_a", 0),
+            score.scores.get("team_b", 0),
+        )
 
         return self._build_result(
             fps,
