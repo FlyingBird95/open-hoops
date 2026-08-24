@@ -12,23 +12,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
+        run: uv sync --all-packages --dev
 
       - name: Lint (ruff)
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Format check (ruff)
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
       - name: Tests
-        run: pytest --tb=short
+        run: uv run pytest --tb=short
 
   frontend:
     runs-on: ubuntu-latest
