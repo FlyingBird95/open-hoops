@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "open-hoops"
+version = "0.2.0"
+description = "Extract basketball stats from video using RF-DETR + SAM2"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "inference>=0.30",
+    "supervision>=0.27.0",
+    "sports @ git+https://github.com/roboflow/sports.git@feat/basketball",
+    "torch>=2.0",
+    "transformers>=4.40",
+    "umap-learn>=0.5",
+    "opencv-python>=4.9",
+    "pydantic>=2.0",
+    "numpy>=1.26",
+    "sqlalchemy>=2.0",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["open_hoops"]
+
+[tool.pytest.ini_options]
+testpaths = ["open_hoops/tests"]

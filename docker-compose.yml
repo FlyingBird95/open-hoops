@@ -16,7 +16,7 @@ services:
       - "6379:6379"
 
   backend:
-    build: ./backend
+    build: ./backend/dashboard-api
     ports:
       - "8000:8000"
     environment:
@@ -26,13 +26,13 @@ services:
       - db
       - redis
     volumes:
-      - ./backend:/app
-      - ./open_hoops:/open_hoops
+      - ./backend/dashboard-api:/app
+      - ./backend/open_hoops:/open_hoops
       - uploads:/app/uploads
     command: bash -c "pip install -e /open_hoops && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   worker:
-    build: ./backend
+    build: ./backend/worker
     environment:
       OPEN_HOOPS_DATABASE_URL: postgresql://postgres:postgres@db:5432/open_hoops
       OPEN_HOOPS_REDIS_URL: redis://redis:6379/0
@@ -40,8 +40,8 @@ services:
       - db
       - redis
     volumes:
-      - ./backend:/app
-      - ./open_hoops:/open_hoops
+      - ./backend/worker:/app
+      - ./backend/open_hoops:/open_hoops
       - uploads:/app/uploads
     command: bash -c "pip install -e /open_hoops && celery -A worker.celery_app:celery worker --loglevel=info -Q analysis"
 

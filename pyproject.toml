@@ -1,53 +1,25 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[project]
-name = "open-hoops"
-version = "0.2.0"
-description = "Extract basketball stats from video using RF-DETR + SAM2"
-readme = "README.md"
-requires-python = ">=3.12"
-license = { text = "MIT" }
-dependencies = [
-    "inference>=0.30",
-    "supervision>=0.27.0",
-    "sports @ git+https://github.com/roboflow/sports.git@feat/basketball",
-    "torch>=2.0",
-    "transformers>=4.40",
-    "umap-learn>=0.5",
-    "opencv-python>=4.9",
-    "pydantic>=2.0",
-    "numpy>=1.26",
-    "sqlalchemy>=2.0",
+[tool.uv.workspace]
+members = [
+    "backend/open_hoops",
+    "backend/dashboard-api",
+    "backend/worker",
+    "backend/testhelpers",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff==0.16.4", "mypy>=1.10"]
 
-[tool.uv.workspace]
-members = ["backend", "worker"]
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["open_hoops", "testhelpers"]
-
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["backend/alembic", "**/*.md"]
+extend-exclude = ["backend/dashboard-api/alembic", "**/*.md"]
 
 [tool.ruff.lint.per-file-ignores]
-"backend/app/routers/**" = ["B008"]
-"backend/app/routers/**/router.py" = ["E402", "F401"]
-"open_hoops/service/**" = ["TC004", "F821"]
-"open_hoops/identity/**" = ["TC004"]
+"backend/dashboard-api/app/routers/**" = ["B008"]
+"backend/dashboard-api/app/routers/**/router.py" = ["E402", "F401"]
+"backend/open_hoops/open_hoops/service/**" = ["TC004", "F821"]
+"backend/open_hoops/open_hoops/identity/**" = ["TC004"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
-
-[tool.pytest.ini_options]
-testpaths = ["open_hoops/tests"]
