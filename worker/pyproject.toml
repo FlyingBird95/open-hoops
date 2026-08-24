@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "open-hoops-worker"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "open-hoops",
+    "celery[redis]>=5.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-factoryboy>=2.7"]
+
+[tool.uv.sources]
+open-hoops = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["worker"]
