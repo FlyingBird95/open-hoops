@@ -4,6 +4,7 @@ import numpy as np
 import supervision as sv
 import torch
 
+from open_hoops.core.logger.default import DefaultLogger
 from open_hoops.tracking.sam2_tracker import SAM2Tracker, TrackedFrame, TrackedPlayer
 
 
@@ -43,7 +44,7 @@ def test_propagate_returns_detections_per_frame(mock_build):
 
     tracker = SAM2Tracker()
     state = {}
-    results = tracker.propagate(state)
+    results = tracker.propagate(state, logger=DefaultLogger("test"))
 
     assert 0 in results
     assert isinstance(results[0], sv.Detections)
