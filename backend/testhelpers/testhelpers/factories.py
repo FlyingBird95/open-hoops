@@ -3,7 +3,6 @@
 import datetime
 
 import factory
-
 from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameFile, GameStatus
 from open_hoops.service.player.models import Player

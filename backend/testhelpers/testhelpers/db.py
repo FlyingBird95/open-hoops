@@ -1,10 +1,9 @@
 """Shared test database setup — import into each conftest.py."""
 
+from open_hoops.core.database import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-
-from open_hoops.core.database import Base
 
 from .factories import (
     GameEventFactory,
