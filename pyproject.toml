@@ -15,7 +15,7 @@ dependencies = []
 dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff==0.16.4", "mypy>=1.10"]
 
 [tool.uv.workspace]
-members = ["backend", "backend/open_hoops", "worker"]
+members = ["backend", "backend/dashboard-api", "backend/open_hoops", "worker"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -26,11 +26,11 @@ packages = ["testhelpers"]
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["backend/alembic", "**/*.md"]
+extend-exclude = ["backend/dashboard-api/alembic", "**/*.md"]
 
 [tool.ruff.lint.per-file-ignores]
-"backend/app/routers/**" = ["B008"]
-"backend/app/routers/**/router.py" = ["E402", "F401"]
+"backend/dashboard-api/app/routers/**" = ["B008"]
+"backend/dashboard-api/app/routers/**/router.py" = ["E402", "F401"]
 "backend/open_hoops/open_hoops/service/**" = ["TC004", "F821"]
 "backend/open_hoops/open_hoops/identity/**" = ["TC004"]
 
