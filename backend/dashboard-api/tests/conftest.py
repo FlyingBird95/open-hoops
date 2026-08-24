@@ -1,7 +1,6 @@
 from app.database import database
 from app.main import app
 from pytest_factoryboy import LazyFixture, register
-
 from testhelpers.db import TestSession
 from testhelpers.factories import (
     GameEventFactory,

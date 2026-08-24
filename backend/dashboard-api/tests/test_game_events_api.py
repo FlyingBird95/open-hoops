@@ -3,7 +3,6 @@ from app.main import app
 from fastapi.testclient import TestClient
 from open_hoops.service.event.models import GameEvent
 from open_hoops.service.game.models import Game
-
 from testhelpers.factories import GameEventFactory, PlayerFactory
 
 client = TestClient(app)

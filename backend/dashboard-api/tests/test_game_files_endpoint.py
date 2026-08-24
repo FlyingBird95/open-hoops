@@ -1,7 +1,6 @@
 from app.main import app
 from fastapi.testclient import TestClient
 from open_hoops.service.game.models import Game
-
 from testhelpers.factories import GameFileFactory
 
 client = TestClient(app)
