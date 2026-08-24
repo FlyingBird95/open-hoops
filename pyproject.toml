@@ -4,18 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "open_hoops"
-version = "0.1.0"
-description = "Extract basketball stats from video using YOLO"
+version = "0.2.0"
+description = "Extract basketball stats from video using RF-DETR + SAM2"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "ultralytics>=8.0",
-    "easyocr>=1.7",
+    "inference>=0.30",
+    "supervision>=0.27.0",
+    "sports @ git+https://github.com/roboflow/sports.git@feat/basketball",
+    "torch>=2.0",
+    "transformers>=4.40",
+    "umap-learn>=0.5",
     "opencv-python>=4.9",
     "pydantic>=2.0",
     "numpy>=1.26",
-    "scikit-learn>=1.4",
     "sqlalchemy>=2.0",
 ]
 

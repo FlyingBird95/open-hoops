@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from open_hoops.tracker import TrackedFrame
+from open_hoops.tracking.sam2_tracker import TrackedFrame
 
 
 def make_tf(players=None, ball_pos=None, hoops=None, frame_idx=0):
