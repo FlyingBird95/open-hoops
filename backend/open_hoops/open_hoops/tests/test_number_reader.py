@@ -11,8 +11,8 @@ def test_read_returns_dict_of_numbers(mock_get_model):
     mock_model = MagicMock()
     mock_get_model.return_value = mock_model
     mock_model.infer.side_effect = [
-        MagicMock(output="23"),
-        MagicMock(output="7"),
+        MagicMock(response="23"),
+        MagicMock(response="7"),
     ]
 
     reader = NumberReader()

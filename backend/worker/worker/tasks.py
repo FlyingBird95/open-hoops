@@ -23,7 +23,9 @@ database = Database(database_url)
 @celery.task(name="worker.tasks.analyze_game")
 def analyze_game(game_uid: str) -> None:
     with database.use_scoped_session() as session:
-        game = session.scalars(select(Game).where(Game.uid == game_uid)).one()
+        game = session.scalars(select(Game).where(Game.uid == game_uid)).one_or_none()
+        if game is None:
+            return
 
         logger = GameLogger(database=database, game_id=game.id)
 

@@ -1,5 +1,6 @@
 """Tests for worker.tasks.analyze_game — single-file, error handling, stats/events persistence."""
 
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,9 +17,8 @@ from open_hoops.service.game.models import Game, GameStatus
 from open_hoops.service.player.models import Player
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 from sqlalchemy.orm import Session
-from worker.tasks import analyze_game
-
 from testhelpers.lazy import LazyFixtureList
+from worker.tasks import analyze_game
 
 
 def make_stats(
@@ -55,15 +55,13 @@ def make_stats(
     )
 
 
-class _NoCloseSession:
-    def __init__(self, s):
-        self._s = s
+class _FakeDatabase:
+    def __init__(self, session):
+        self._session = session
 
-    def __getattr__(self, name):
-        return getattr(self._s, name)
-
-    def close(self):
-        pass
+    @contextmanager
+    def use_scoped_session(self):
+        yield self._session
 
 
 @pytest.mark.parametrize("game__files", [LazyFixtureList("game_file")])
@@ -72,7 +70,7 @@ def test_analyze_single_file(db: Session, game: Game, player: Player):
     mock_oh.extract_stats.return_value = make_stats(duration=90.0, fps=30.0)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
         analyze_game(game.uid)
@@ -90,7 +88,7 @@ def test_analyze_writes_team_stats(db: Session, game: Game, player: Player):
     mock_oh.extract_stats.return_value = make_stats(home_score=25, away_score=20)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
         analyze_game(game.uid)
@@ -112,7 +110,7 @@ def test_analyze_writes_player_stats(db: Session, game: Game, player: Player):
     mock_oh.extract_stats.return_value = make_stats()
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
         analyze_game(game.uid)
@@ -154,7 +152,7 @@ def test_analyze_writes_events(db: Session, game: Game, player: Player):
     mock_oh.extract_stats.return_value = make_stats(events=events)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
         analyze_game(game.uid)
@@ -183,7 +181,7 @@ def test_analyze_writes_events(db: Session, game: Game, player: Player):
 
 
 def test_analyze_game_not_found(db: Session):
-    with patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)):
+    with patch("worker.tasks.database", _FakeDatabase(db)):
         analyze_game("nonexistent_uid_1234567890ab")
 
 
@@ -200,7 +198,7 @@ def test_analyze_sets_processing_status(db: Session, game: Game, player: Player)
     mock_oh.extract_stats.side_effect = capture_status
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
         analyze_game(game.uid)
@@ -214,7 +212,7 @@ def test_analyze_failure_sets_failed_status(db: Session, game: Game, player: Pla
     mock_oh.extract_stats.side_effect = RuntimeError("Model crash")
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh),
     ):
         analyze_game(game.uid)

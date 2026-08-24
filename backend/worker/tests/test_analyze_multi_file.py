@@ -1,11 +1,11 @@
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 from open_hoops.service.analysis.models import AnalysisResult, AnalyzedTeamStats, Video
 from open_hoops.service.game.models import Game, GameStatus
 from sqlalchemy.orm import Session
-from worker.tasks import analyze_game
-
 from testhelpers.factories import GameFileFactory
+from worker.tasks import analyze_game
 
 
 def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):
@@ -21,15 +21,13 @@ def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):
     )
 
 
-class _NoCloseSession:
-    def __init__(self, s):
-        self._s = s
+class _FakeDatabase:
+    def __init__(self, session):
+        self._session = session
 
-    def __getattr__(self, name):
-        return getattr(self._s, name)
-
-    def close(self):
-        pass
+    @contextmanager
+    def use_scoped_session(self):
+        yield self._session
 
 
 def test_analyze_merges_multiple_files(db: Session, game: Game):
@@ -40,7 +38,7 @@ def test_analyze_merges_multiple_files(db: Session, game: Game):
     mock_oh.extract_stats.return_value = make_fake_stats(duration=60.0)
 
     with (
-        patch("worker.tasks.SessionLocal", return_value=_NoCloseSession(db)),
+        patch("worker.tasks.database", _FakeDatabase(db)),
         patch("worker.tasks.OpenHoop", return_value=mock_oh) as MockOH,
     ):
         analyze_game(game.uid)

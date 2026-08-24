@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +10,8 @@ from app.routers.events.router import router as events_router
 from app.routers.games.router import router as games_router
 from app.routers.players.router import router as players_router
 from app.routers.teams.router import router as teams_router
+
+os.makedirs(settings.upload_dir, exist_ok=True)
 
 app = FastAPI(title="Open Hoops API")
 

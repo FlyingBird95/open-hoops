@@ -1,5 +1,4 @@
 from pytest_factoryboy import LazyFixture, register
-
 from testhelpers.factories import (
     GameEventFactory,
     GameFactory,
