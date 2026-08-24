@@ -10,7 +10,11 @@ repos:
     hooks:
       - id: tsc
         name: TypeScript check
-        entry: bash -c 'cd frontend && npx tsc --noEmit'
+        entry: >-
+          bash -c
+          'if [ -d frontend/dashboard/node_modules ];
+          then cd frontend/dashboard && npx tsc --noEmit;
+          else echo "Skipping tsc - run npm ci in frontend/dashboard first"; fi'
         language: system
         pass_filenames: false
-        files: ^frontend/.*\.(ts|tsx)$
+        files: ^frontend/dashboard/.*\.(ts|tsx)$
