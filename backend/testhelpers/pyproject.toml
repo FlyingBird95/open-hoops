@@ -12,6 +12,7 @@ dependencies = [
     "pytest-factoryboy>=2.7",
     "factory-boy>=3.3",
     "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
 ]
 
 [tool.uv.sources]
