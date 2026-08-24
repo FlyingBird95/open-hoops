@@ -15,12 +15,13 @@ Basketball video analytics platform. YOLO-based detection + stats extraction fro
 ## Project Structure
 
 ```
-open_hoops/          — core library (analysis, detection, Pydantic models)
-open_hoops/core/     — database engine, Base, session factory
-open_hoops/service/  — SQLAlchemy models per domain (team, player, game, event, stats)
-backend/             — FastAPI REST API
-worker/              — Celery worker (background analysis tasks)
-frontend/            — React + TypeScript + Vite dashboard
+backend/
+  open_hoops/        — core library (analysis, detection, Pydantic models, SQLAlchemy service models)
+  dashboard-api/     — FastAPI REST API + Alembic migrations
+  worker/            — Celery worker (background analysis tasks)
+  testhelpers/       — shared test factories and fixtures
+frontend/
+  dashboard/         — React + TypeScript + Vite dashboard
 ```
 
 ## Python Style
@@ -59,14 +60,14 @@ frontend/            — React + TypeScript + Vite dashboard
 ### Backend
 
 - FastAPI with SQLAlchemy 2.0 (sync sessions).
-- DB models live in `open_hoops/service/` (shared with worker).
+- DB models live in `backend/open_hoops/open_hoops/service/` (shared with worker).
 - Backend dispatches Celery tasks by name via `send_task()` — no direct import of worker.
 - PostgreSQL database. Alembic for migrations.
 
 ### Worker
 
-- Celery + Redis. Separate top-level `worker/` package.
-- Run with: `celery -A worker.celery_app:celery worker --loglevel=info -Q analysis`
+- Celery + Redis. Package lives in `backend/worker/`.
+- Run from `backend/worker/`: `celery -A worker.celery_app:celery worker --loglevel=info -Q analysis`
 - Imports `open_hoops.service` models and `open_hoops` for analysis.
 
 ### Frontend
@@ -74,7 +75,7 @@ frontend/            — React + TypeScript + Vite dashboard
 - React 19, TypeScript 6, Vite 8, React Router, TanStack Query.
 - shadcn/ui (Tailwind-based components).
 - Pages: My Team, Opponents, Games (upload + list + detail).
-- Testing: Vitest + React Testing Library. Run with `npm test` from `frontend/`.
+- Testing: Vitest + React Testing Library. Run with `npm test` from `frontend/dashboard/`.
 - API responses use JSON:API format. Frontend helpers `extractOne`, `extractMany`, `extractOneWithRels`, `extractManyWithRels` in `src/lib/api.ts` unwrap responses into flat objects with uid.
 
 ### Player API
