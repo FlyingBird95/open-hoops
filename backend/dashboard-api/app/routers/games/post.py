@@ -8,8 +8,8 @@ from open_hoops.service.game.models import Game, GameFile
 from open_hoops.service.team.models import Team, generate_uid
 from sqlalchemy.orm import Session
 
-from app.celery_app import celery as celery_app
 from app.config import settings
+from app.task_broker import TaskName, task_broker
 from app.database import database
 from app.jsonapi import document
 
@@ -73,6 +73,6 @@ def upload_game(
     db.commit()
     db.refresh(game)
 
-    celery_app.send_task("worker.tasks.analyze_game", args=[game.uid])
+    task_broker.send(TaskName.ANALYZE_GAME, args=[game.uid])
 
     return JSONResponse(content=document(data=serialize_game(game)), status_code=201)

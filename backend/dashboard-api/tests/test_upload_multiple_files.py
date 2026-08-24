@@ -8,7 +8,7 @@ from open_hoops.service.game.models import Game
 client = TestClient(app)
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_upload_multiple_files(mock_task, game: Game):
     mock_task.return_value = None
 
@@ -32,7 +32,7 @@ def test_upload_multiple_files(mock_task, game: Game):
     mock_task.assert_called_once()
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_upload_single_file_via_files_param(mock_task, game: Game):
     mock_task.return_value = None
 

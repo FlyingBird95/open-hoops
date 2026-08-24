@@ -3229,6 +3229,7 @@ dependencies = [
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "pydantic" },
+    { name = "redis" },
     { name = "sports" },
     { name = "sqlalchemy" },
     { name = "supervision" },
@@ -3243,6 +3244,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python", specifier = ">=4.9" },
     { name = "pydantic", specifier = ">=2.0" },
+    { name = "redis", specifier = ">=5.0" },
     { name = "sports", git = "https://github.com/roboflow/sports.git?rev=feat%2Fbasketball" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "supervision", specifier = ">=0.27.0" },
@@ -3257,7 +3259,6 @@ version = "0.1.0"
 source = { editable = "backend/dashboard-api" }
 dependencies = [
     { name = "alembic" },
-    { name = "celery", extra = ["redis"] },
     { name = "fastapi" },
     { name = "open-hoops" },
     { name = "psycopg2-binary" },
@@ -3278,7 +3279,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
-    { name = "celery", extras = ["redis"], specifier = ">=5.4" },
     { name = "fastapi", specifier = ">=0.111" },
     { name = "open-hoops", editable = "backend/open_hoops" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
@@ -3303,6 +3303,7 @@ source = { editable = "backend/testhelpers" }
 dependencies = [
     { name = "factory-boy" },
     { name = "open-hoops" },
+    { name = "psycopg2-binary" },
     { name = "pytest" },
     { name = "pytest-factoryboy" },
     { name = "sqlalchemy" },
@@ -3312,6 +3313,7 @@ dependencies = [
 requires-dist = [
     { name = "factory-boy", specifier = ">=3.3" },
     { name = "open-hoops", editable = "backend/open_hoops" },
+    { name = "psycopg2-binary", specifier = ">=2.9" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-factoryboy", specifier = ">=2.7" },
     { name = "sqlalchemy", specifier = ">=2.0" },

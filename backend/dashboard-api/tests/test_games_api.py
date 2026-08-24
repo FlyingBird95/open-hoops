@@ -8,7 +8,7 @@ from open_hoops.service.game.models import Game
 client = TestClient(app)
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_upload_game(mock_task, game: Game):
     home_uid, away_uid = game.own_team.uid, game.opponent_team.uid
     mock_task.return_value = None
@@ -30,7 +30,7 @@ def test_upload_game(mock_task, game: Game):
     mock_task.assert_called_once()
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_list_games(mock_task, game: Game):
     mock_task.return_value = None
 
@@ -48,7 +48,7 @@ def test_list_games(mock_task, game: Game):
     assert len(resp.json()["data"]) >= 1
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_get_game(mock_task, game: Game):
     mock_task.return_value = None
 
@@ -68,7 +68,7 @@ def test_get_game(mock_task, game: Game):
     assert resp.json()["data"]["attributes"]["name"] == "G1"
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_upload_game_missing_team(mock_task):
     mock_task.return_value = None
 
@@ -90,7 +90,7 @@ def test_get_game_not_found():
     assert resp.status_code == 404
 
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_archive_game(mock_task, game: Game):
     mock_task.return_value = None
 
