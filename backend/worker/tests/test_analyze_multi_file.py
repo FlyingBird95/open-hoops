@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock, patch
 
-from sqlalchemy.orm import Session
-
 from open_hoops.service.analysis.models import AnalysisResult, AnalyzedTeamStats, Video
 from open_hoops.service.game.models import Game, GameStatus
-from testhelpers.factories import GameFileFactory
+from sqlalchemy.orm import Session
 from worker.tasks import analyze_game
+
+from testhelpers.factories import GameFileFactory
 
 
 def make_fake_stats(duration=60.0, fps=30.0, path="uploads/fake.mp4"):

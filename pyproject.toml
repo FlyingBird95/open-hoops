@@ -15,7 +15,7 @@ dependencies = []
 dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "ruff==0.16.4", "mypy>=1.10"]
 
 [tool.uv.workspace]
-members = ["backend/dashboard-api", "backend/open_hoops", "worker"]
+members = ["backend/dashboard-api", "backend/open_hoops", "backend/worker"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

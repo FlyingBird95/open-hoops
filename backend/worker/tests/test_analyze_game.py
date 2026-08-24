@@ -3,8 +3,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy.orm import Session
-
 from open_hoops.service.analysis.models import (
     AnalysisResult,
     AnalyzedEvent,
@@ -17,8 +15,10 @@ from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameStatus
 from open_hoops.service.player.models import Player
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
-from testhelpers.lazy import LazyFixtureList
+from sqlalchemy.orm import Session
 from worker.tasks import analyze_game
+
+from testhelpers.lazy import LazyFixtureList
 
 
 def make_stats(

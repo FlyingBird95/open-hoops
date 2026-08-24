@@ -1,8 +1,6 @@
 import os
 import traceback
 
-from sqlalchemy import select, update
-
 from open_hoops.analyzer import OpenHoop
 from open_hoops.core.database import Database
 from open_hoops.core.logger.game import GameLogger
@@ -12,6 +10,8 @@ from open_hoops.service.event.models import EventSource, GameEvent
 from open_hoops.service.game.models import Game, GameStatus
 from open_hoops.service.player.models import Player  # noqa: F401
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
+from sqlalchemy import select, update
+
 from worker.celery_app import celery
 
 database_url = os.environ.get(

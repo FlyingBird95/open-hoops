@@ -11,11 +11,15 @@ dependencies = [
     "celery[redis]>=5.4",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-factoryboy>=2.7"]
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-factoryboy>=2.7", "open-hoops-testhelpers"]
 
 [tool.uv.sources]
 open-hoops = { workspace = true }
+open-hoops-testhelpers = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
