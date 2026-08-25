@@ -9,12 +9,19 @@ from open_hoops.service.player.models import Player
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 from open_hoops.service.team.models import Team
 
+from .db import database
 
-class TeamFactory(factory.alchemy.SQLAlchemyModelFactory):
+
+class ModelFactory(factory.alchemy.SQLAlchemyModelFactory):
+    class Meta:
+        abstract = True
+        sqlalchemy_session_factory = database.session_factory
+        sqlalchemy_session_persistence = "commit"
+
+
+class TeamFactory(ModelFactory):
     class Meta:
         model = Team
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     name = factory.Sequence(lambda n: f"Team {n}")
     is_own = False
@@ -22,22 +29,18 @@ class TeamFactory(factory.alchemy.SQLAlchemyModelFactory):
     away_color = "#ffffff"
 
 
-class PlayerFactory(factory.alchemy.SQLAlchemyModelFactory):
+class PlayerFactory(ModelFactory):
     class Meta:
         model = Player
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     jersey_number = factory.Sequence(lambda n: n + 1)
     name = factory.Sequence(lambda n: f"Player {n}")
     team = factory.SubFactory(TeamFactory)
 
 
-class GameFactory(factory.alchemy.SQLAlchemyModelFactory):
+class GameFactory(ModelFactory):
     class Meta:
         model = Game
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     name = factory.Sequence(lambda n: f"Game {n}")
     date = factory.LazyFunction(lambda: datetime.date(2026, 8, 10))
@@ -54,11 +57,9 @@ class GameFactory(factory.alchemy.SQLAlchemyModelFactory):
         pass
 
 
-class GameFileFactory(factory.alchemy.SQLAlchemyModelFactory):
+class GameFileFactory(ModelFactory):
     class Meta:
         model = GameFile
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     game = factory.SubFactory(GameFactory)
     file_path = factory.Sequence(lambda n: f"uploads/part{n}.mp4")
@@ -67,11 +68,9 @@ class GameFileFactory(factory.alchemy.SQLAlchemyModelFactory):
     size_bytes = 1000
 
 
-class GameTeamStatsFactory(factory.alchemy.SQLAlchemyModelFactory):
+class GameTeamStatsFactory(ModelFactory):
     class Meta:
         model = GameTeamStats
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     game = factory.SubFactory(GameFactory)
     team = factory.SubFactory(TeamFactory)
@@ -79,11 +78,9 @@ class GameTeamStatsFactory(factory.alchemy.SQLAlchemyModelFactory):
     possession_pct = 50.0
 
 
-class GamePlayerStatsFactory(factory.alchemy.SQLAlchemyModelFactory):
+class GamePlayerStatsFactory(ModelFactory):
     class Meta:
         model = GamePlayerStats
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     game = factory.SubFactory(GameFactory)
     team = factory.SubFactory(TeamFactory)
@@ -97,11 +94,9 @@ class GamePlayerStatsFactory(factory.alchemy.SQLAlchemyModelFactory):
     possession_frames = 0
 
 
-class GameEventFactory(factory.alchemy.SQLAlchemyModelFactory):
+class GameEventFactory(ModelFactory):
     class Meta:
         model = GameEvent
-        sqlalchemy_session = None
-        sqlalchemy_session_persistence = "commit"
 
     game = factory.SubFactory(GameFactory)
     type = "shot"

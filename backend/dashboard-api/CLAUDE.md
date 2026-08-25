@@ -262,7 +262,7 @@ Tests use **pytest**, **pytest-factoryboy**, and **factory_boy**. Run with `pyte
 ### Principles
 
 - Use factories and fixtures for test data — never inline SQL or manual object construction.
-- Only mock **external services** (OpenHoop/YOLO, celery, cv2). Never mock DB, internal logic, or API responses.
+- Only mock **external services** (OpenHoop/YOLO, task_broker, cv2). Never mock DB, internal logic, or API responses.
 - Use type annotations on all fixtures and test function parameters.
 - Prefer parametrize for testing multiple scenarios over duplicating test functions.
 
@@ -418,7 +418,7 @@ Only mock what you can't control in tests:
 ```python
 from unittest.mock import patch, MagicMock
 
-@patch("app.routers.games.post.celery_app.send_task")
+@patch("app.routers.games.post.task_broker")
 def test_upload_triggers_analysis(mock_task: MagicMock, db: Session) -> None:
     mock_task.return_value = None
     # ... test upload
