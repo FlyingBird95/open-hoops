@@ -3,15 +3,13 @@
 import pytest
 from open_hoops.core.database import Base
 
-from .db import database
-from .factories import ModelFactory
+from .db import ScopedSession, database
 
 
 @pytest.fixture(autouse=True)
 def db():
     Base.metadata.create_all(database.engine)
-    session = database.session_factory()
-    ModelFactory._meta.sqlalchemy_session = session
+    session = ScopedSession()
     yield session
-    session.close()
+    ScopedSession.remove()
     Base.metadata.drop_all(database.engine)
