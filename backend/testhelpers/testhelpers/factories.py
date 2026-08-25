@@ -9,13 +9,10 @@ from open_hoops.service.player.models import Player
 from open_hoops.service.stats.models import GamePlayerStats, GameTeamStats
 from open_hoops.service.team.models import Team
 
-from .db import database
-
 
 class ModelFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         abstract = True
-        sqlalchemy_session_factory = database.session_factory
         sqlalchemy_session_persistence = "commit"
 
 
