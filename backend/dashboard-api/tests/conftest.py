@@ -1,7 +1,7 @@
 from app.database import database
 from app.main import app
 from pytest_factoryboy import LazyFixture, register
-from testhelpers.db import database as test_database
+from testhelpers.db import ScopedSession
 from testhelpers.factories import (
     GameEventFactory,
     GameFactory,
@@ -24,12 +24,9 @@ register(GamePlayerStatsFactory, game=LazyFixture("game"))
 register(GameEventFactory, game=LazyFixture("game"))
 
 
-def override_use_session():
-    session = test_database.session_factory()
-    try:
-        yield session
-    finally:
-        session.close()
+def _override_use_session():
+    session = ScopedSession()
+    yield session
 
 
-app.dependency_overrides[database.use_session] = override_use_session
+app.dependency_overrides[database.use_session] = _override_use_session

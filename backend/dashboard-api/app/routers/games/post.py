@@ -9,9 +9,9 @@ from open_hoops.service.team.models import Team, generate_uid
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.task_broker import TaskName, task_broker
 from app.database import database
 from app.jsonapi import document
+from app.task_broker import TaskName, task_broker
 
 from .router import router
 from .serialize import serialize_game
