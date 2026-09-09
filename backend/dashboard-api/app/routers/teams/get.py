@@ -1,15 +1,13 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from open_hoops.service.team.models import Team
 
-from app.database import database
 from app.jsonapi import document
 
-from .queries import fetch_team
+from . import dependencies
 from .router import router
 from .serialize import serialize_team
 
 
 @router.get("/{uid}")
-def get_team(uid: str, db: Session = Depends(database.use_session)):
-    team = fetch_team(db, uid)
+def get_team(team: Team = Depends(dependencies.get_team_by_uid)):
     return document(data=serialize_team(team))

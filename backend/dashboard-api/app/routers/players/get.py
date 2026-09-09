@@ -1,15 +1,13 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from open_hoops.service.player.models import Player
 
-from app.database import database
 from app.jsonapi import document
 
-from .queries import fetch_player
+from . import dependencies
 from .router import router
 from .serialize import serialize_player
 
 
 @router.get("/{uid}")
-def get_player(uid: str, db: Session = Depends(database.use_session)):
-    player = fetch_player(db, uid)
+def get_player(player: Player = Depends(dependencies.get_player_by_uid)):
     return document(data=serialize_player(player))

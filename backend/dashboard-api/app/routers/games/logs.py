@@ -1,23 +1,22 @@
 from datetime import datetime
 
 from fastapi import Depends, Query
-from open_hoops.service.game.models import GameLog
+from open_hoops.service.game.models import Game, GameLog
 from sqlalchemy.orm import Session
 
 from app.database import database
 from app.jsonapi import document, resource_object
 
-from .queries import fetch_game
+from . import dependencies
 from .router import router
 
 
 @router.get("/{uid}/logs")
 def list_game_logs(
-    uid: str,
+    game: Game = Depends(dependencies.get_game_by_uid),
     after: str | None = Query(None),
     db: Session = Depends(database.use_session),
 ):
-    game = fetch_game(db, uid)
     query = db.query(GameLog).filter(GameLog.game_id == game.id)
     if after:
         after_dt = datetime.fromisoformat(after)

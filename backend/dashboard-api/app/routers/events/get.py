@@ -1,15 +1,13 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from open_hoops.service.event.models import GameEvent
 
-from app.database import database
 from app.jsonapi import document
 
-from .queries import fetch_event
+from . import dependencies
 from .router import router
 from .serialize import serialize_event
 
 
 @router.get("/{uid}")
-def get_event(uid: str, db: Session = Depends(database.use_session)):
-    event = fetch_event(db, uid)
+def get_event(event: GameEvent = Depends(dependencies.get_event_by_uid)):
     return document(data=serialize_event(event))

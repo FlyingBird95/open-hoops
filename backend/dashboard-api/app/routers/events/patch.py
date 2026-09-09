@@ -1,14 +1,16 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
+from open_hoops.service.event.models import GameEvent
 from open_hoops.service.player.models import Player
 from open_hoops.service.team.models import Team
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app import exceptions
 from app.database import database
 from app.jsonapi import document
 
+from . import dependencies
 from .post import EVENT_TYPES
-from .queries import fetch_event
 from .router import router
 from .serialize import serialize_event
 
@@ -30,21 +32,23 @@ class EventPatchRequest(BaseModel):
 
 
 @router.patch("/{uid}")
-def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(database.use_session)):
-    event = fetch_event(db, uid)
-
+def patch_event(
+    body: EventPatchRequest,
+    event: GameEvent = Depends(dependencies.get_event_by_uid),
+    db: Session = Depends(database.use_session),
+):
     attrs = body.data.attributes
 
     if attrs.type is not None:
         if attrs.type not in EVENT_TYPES:
-            raise HTTPException(422, f"Invalid event type: {attrs.type}")
+            raise exceptions.UnprocessableEntity(f"Invalid event type: {attrs.type}")
         event.type = attrs.type
 
     if "team_uid" in body.data.attributes.model_fields_set:
         if attrs.team_uid:
             team = db.query(Team).filter(Team.uid == attrs.team_uid).first()
             if not team:
-                raise HTTPException(422, "Team not found")
+                raise exceptions.UnprocessableEntity("Team not found")
             event.team_id = team.id
         else:
             event.team_id = None
@@ -53,7 +57,7 @@ def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(databas
         if attrs.player_uid:
             player = db.query(Player).filter(Player.uid == attrs.player_uid).first()
             if not player:
-                raise HTTPException(422, "Player not found")
+                raise exceptions.UnprocessableEntity("Player not found")
             event.player_id = player.id
         else:
             event.player_id = None
@@ -62,7 +66,7 @@ def patch_event(uid: str, body: EventPatchRequest, db: Session = Depends(databas
         if attrs.player2_uid:
             player2 = db.query(Player).filter(Player.uid == attrs.player2_uid).first()
             if not player2:
-                raise HTTPException(422, "Player2 not found")
+                raise exceptions.UnprocessableEntity("Player2 not found")
             event.player2_id = player2.id
         else:
             event.player2_id = None
