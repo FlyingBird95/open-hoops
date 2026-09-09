@@ -1,13 +1,14 @@
 from fastapi import Depends
 from fastapi.responses import JSONResponse
 from open_hoops.service.player.models import Player
+from open_hoops.service.team.models import Team
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app import exceptions
 from app.database import database
 from app.jsonapi import document
 
-from .queries import fetch_team
 from .router import router
 from .serialize import serialize_player
 
@@ -42,7 +43,11 @@ class PlayerCreateRequest(BaseModel):
 
 @router.post("")
 def create_player(body: PlayerCreateRequest, db: Session = Depends(database.use_session)):
-    team = fetch_team(db, body.data.relationships.team.data.uid)
+    team_uid = body.data.relationships.team.data.uid
+    team = db.query(Team).filter(Team.uid == team_uid).first()
+    if not team:
+        raise exceptions.NotFound("Team not found")
+
     attrs = body.data.attributes
     player = Player(
         team_id=team.id,

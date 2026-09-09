@@ -1,19 +1,22 @@
 import cv2
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.responses import Response
+from open_hoops.service.event.models import GameEvent
 from open_hoops.service.game.models import GameFile
 from sqlalchemy.orm import Session
 
+from app import exceptions
 from app.database import database
 
-from .queries import fetch_event
+from . import dependencies
 from .router import router
 
 
 @router.get("/{uid}/frame")
-def get_event_frame(uid: str, db: Session = Depends(database.use_session)):
-    event = fetch_event(db, uid)
-
+def get_event_frame(
+    event: GameEvent = Depends(dependencies.get_event_by_uid),
+    db: Session = Depends(database.use_session),
+):
     game_files = (
         db.query(GameFile)
         .filter(GameFile.game_id == event.game_id)
@@ -21,7 +24,7 @@ def get_event_frame(uid: str, db: Session = Depends(database.use_session)):
         .all()
     )
     if not game_files:
-        raise HTTPException(404, "No video files for game")
+        raise exceptions.NotFound("No video files for game")
 
     target_frame = event.frame
     file_path = None
@@ -48,14 +51,14 @@ def get_event_frame(uid: str, db: Session = Depends(database.use_session)):
     cap = cv2.VideoCapture(file_path)
     if not cap.isOpened():
         cap.release()
-        raise HTTPException(500, "Cannot open video file")
+        raise exceptions.ServerError("Cannot open video file")
 
     cap.set(cv2.CAP_PROP_POS_FRAMES, local_frame)
     ret, frame = cap.read()
     cap.release()
 
     if not ret:
-        raise HTTPException(500, "Cannot read frame from video")
+        raise exceptions.ServerError("Cannot read frame from video")
 
     if event.bbox_x1 is not None:
         cv2.rectangle(

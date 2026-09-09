@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, Query
 from open_hoops.service.event.models import GameEvent
 from open_hoops.service.game.models import Game
 from sqlalchemy.orm import Session
@@ -6,21 +6,18 @@ from sqlalchemy.orm import Session
 from app.database import database
 from app.jsonapi import document
 
+from ..games import dependencies
 from .router import router
 from .serialize import serialize_event
 
 
 @router.get("")
 def list_events(
-    game: str = Query(...),
+    game: Game = Depends(dependencies.get_game_by_query),
     type: str | None = Query(None),
     db: Session = Depends(database.use_session),
 ):
-    game_obj = db.query(Game).filter(Game.uid == game).first()
-    if not game_obj:
-        raise HTTPException(404, "Game not found")
-
-    q = db.query(GameEvent).filter(GameEvent.game_id == game_obj.id)
+    q = db.query(GameEvent).filter(GameEvent.game == game)
     if type:
         q = q.filter(GameEvent.type == type)
     events = q.order_by(GameEvent.timestamp_sec).all()

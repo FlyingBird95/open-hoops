@@ -1,7 +1,7 @@
-from open_hoops.core.task_broker import TaskName
+import worker.tasks  # noqa: F401 — triggers task registration
 from worker.celery_app import celery
 
-import worker.tasks  # noqa: F401 — triggers task registration
+from open_hoops.core.task_broker import TaskName
 
 
 def test_all_task_names_registered_in_worker():

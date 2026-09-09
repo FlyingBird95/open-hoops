@@ -22,37 +22,39 @@ class TaskBroker:
             ).encode()
         ).decode()
 
-        message = json.dumps({
-            "body": body,
-            "content-encoding": "utf-8",
-            "content-type": "application/json",
-            "headers": {
-                "lang": "py",
-                "task": task_name,
-                "id": task_id,
-                "shadow": None,
-                "eta": None,
-                "expires": None,
-                "group": None,
-                "group_index": None,
-                "retries": 0,
-                "timelimit": [None, None],
-                "root_id": task_id,
-                "parent_id": None,
-                "argsrepr": repr(tuple(args)),
-                "kwargsrepr": "{}",
-                "origin": "dashboard-api",
-            },
-            "properties": {
-                "correlation_id": task_id,
-                "reply_to": str(uuid.uuid4()),
-                "delivery_mode": 2,
-                "delivery_info": {"exchange": "", "routing_key": queue},
-                "priority": 0,
-                "body_encoding": "base64",
-                "delivery_tag": str(uuid.uuid4()),
-            },
-        })
+        message = json.dumps(
+            {
+                "body": body,
+                "content-encoding": "utf-8",
+                "content-type": "application/json",
+                "headers": {
+                    "lang": "py",
+                    "task": task_name,
+                    "id": task_id,
+                    "shadow": None,
+                    "eta": None,
+                    "expires": None,
+                    "group": None,
+                    "group_index": None,
+                    "retries": 0,
+                    "timelimit": [None, None],
+                    "root_id": task_id,
+                    "parent_id": None,
+                    "argsrepr": repr(tuple(args)),
+                    "kwargsrepr": "{}",
+                    "origin": "dashboard-api",
+                },
+                "properties": {
+                    "correlation_id": task_id,
+                    "reply_to": str(uuid.uuid4()),
+                    "delivery_mode": 2,
+                    "delivery_info": {"exchange": "", "routing_key": queue},
+                    "priority": 0,
+                    "body_encoding": "base64",
+                    "delivery_tag": str(uuid.uuid4()),
+                },
+            }
+        )
 
         self._redis.lpush(queue, message)
         return task_id

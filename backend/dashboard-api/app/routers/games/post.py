@@ -2,16 +2,17 @@ import os
 import shutil
 from datetime import date as date_type
 
-from fastapi import Depends, File, Form, HTTPException, UploadFile
+from fastapi import Depends, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 from open_hoops.service.game.models import Game, GameFile
 from open_hoops.service.team.models import Team, generate_uid
 from sqlalchemy.orm import Session
 
+from app import exceptions
 from app.config import settings
-from app.task_broker import TaskName, task_broker
 from app.database import database
 from app.jsonapi import document
+from app.task_broker import TaskName, task_broker
 
 from .router import router
 from .serialize import serialize_game
@@ -30,10 +31,10 @@ def upload_game(
 ):
     own_team = db.query(Team).filter(Team.uid == own_team_uid).first()
     if not own_team:
-        raise HTTPException(404, "Own team not found")
+        raise exceptions.NotFound("Own team not found")
     opponent_team = db.query(Team).filter(Team.uid == opponent_team_uid).first()
     if not opponent_team:
-        raise HTTPException(404, "Opponent team not found")
+        raise exceptions.NotFound("Opponent team not found")
 
     os.makedirs(settings.upload_dir, exist_ok=True)
     game_uid = generate_uid()
